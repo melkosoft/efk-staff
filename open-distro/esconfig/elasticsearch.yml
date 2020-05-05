@@ -1,0 +1,34 @@
+cluster.name: "es-cluster"
+network.host: 0.0.0.0
+
+# TLS Configuration Transport Layer
+opendistro_security.ssl.transport.pemcert_filepath: node.pem
+opendistro_security.ssl.transport.pemkey_filepath: node.key
+opendistro_security.ssl.transport.pemtrustedcas_filepath: root-ca.pem
+#    opendistro_security.ssl.transport.pemkey_password: ${TRANSPORT_TLS_PEM_PASS}
+opendistro_security.ssl.transport.enforce_hostname_verification: false
+opendistro_security.ssl.transport.resolve_hostname: false
+# TLS Configuration REST Layer
+opendistro_security.ssl.http.enabled: true
+opendistro_security.ssl.http.pemcert_filepath: node.pem
+opendistro_security.ssl.http.pemkey_filepath: node.key
+opendistro_security.ssl.http.pemtrustedcas_filepath: root-ca.pem
+#    opendistro_security.ssl.http.pemkey_password: ${HTTP_TLS_PEM_PASS}
+
+# Demo Certificate Option Disabled
+opendistro_security.allow_unsafe_democertificates: true
+opendistro_security.allow_default_init_securityindex: true
+opendistro_security.authcz.admin_dn:
+  - 'CN=admin'
+  - 'CN=admin,OU=HP Business Platform,O=HP Inc,L=Palo Alto,ST=California,C=US'
+opendistro_security.nodes_dn:
+  - 'CN=node1'
+  - 'CN=node1.mylab.local,OU=HP Business Platform,O=HP Inc,L=Palo Alto,ST=California,C=US'
+  - ‘/CN=.*regex/’
+opendistro_security.audit.type: internal_elasticsearch
+opendistro_security.enable_snapshot_restore_privilege: true
+opendistro_security.check_snapshot_restore_write_privileges: true
+opendistro_security.restapi.roles_enabled: ["all_access", "security_rest_api_access"]
+cluster.routing.allocation.disk.threshold_enabled: false
+opendistro_security.audit.config.disabled_rest_categories: NONE
+opendistro_security.audit.config.disabled_transport_categories: NONE

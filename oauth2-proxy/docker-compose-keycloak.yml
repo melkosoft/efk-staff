@@ -1,0 +1,110 @@
+version: '3.2'
+# GITHUB Configuration:
+#   Application name: any usefull string
+#   Homepage URL: any string which represent external/internal url of application
+#   Application description: any text which will be displayed to all users during authentication
+#   Authorization callback URL: http://localhost:4180/oauth2/callback
+#
+# See https://github.com/bitly/oauth2_proxy for more command line options
+#
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.6.1
+    container_name: elasticsearch
+    domainname: mylab.local
+    hostname: elasticsearch
+    environment:
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+      - ELASTIC_PASSWORD=changeme
+      - discovery.type=single-node
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+  kibana:
+    links:
+      - elasticsearch
+#    image: docker.elastic.co/kibana/kibana:7.6.1
+    image: docker.elastic.co/kibana/kibana:7.6.1
+    container_name: kibana
+    hostname: kibana
+    domainname: mylab.local
+    ports:
+      - "5601:5601"
+    environment:
+      - SERVER_NAME=kibana
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - elasticsearch.username=elastic
+      - elasticsearch.password=changeme
+      - "elasticsearch.requestHeadersWhitelist=[ es-security-runas-user, authorization ]"
+      - "xpack.monitoring.elasticsearch.requestHeadersWhitelist=[ es-security-runas-user, authorization ]"
+  oauth2-proxy:
+    image: quay.io/pusher/oauth2_proxy
+    container_name: oauth2-proxy
+    restart: always
+    ports:
+      - "4180:4180"
+    links:
+      - nginx-proxy
+    environment:
+      - OAUTH2_PROXY_EMAIL_DOMAINS=*
+      - OAUTH2_PROXY_UPSTREAMS=http://nginx-proxy:8081/
+      - OAUTH2_PROXY_HTTP_ADDRESS=http://0.0.0.0:4180
+      - OAUTH2_PROXY_APPROVAL_PROMPT=auto
+      - OAUTH2_PROXY_REDIRECT_URL=http://0.0.0.0:4180/oauth2/callback
+      - OAUTH2_PROXY_COOKIE_NAME=_oauth2_proxy
+      - OAUTH2_PROXY_COOKIE_SECRET="secretsecret"
+      - OAUTH2_PROXY_COOKIE_SECURE=false
+      - OAUTH2_PROXY_PROVIDER=keycloak
+      - OAUTH2_PROXY_CLIENT_ID=kibana-sso
+      - OAUTH2_PROXY_CLIENT_SECRET=c9a2b135-4d21-4b95-8f09-993ac897734d
+      - OAUTH2_PROXY_LOGIN_URL=http://keycloak.mylab.local:8080/auth/realms/oauth2-proxy/protocol/openid-connect/auth
+      - OAUTH2_PROXY_REDEEM_URL=http://keycloak.mylab.local:8080/auth/realms/oauth2-proxy/protocol/openid-connect/token
+      - OAUTH2_PROXY_VALIDATE_URL=http://keycloak.mylab.local:8080/auth/realms/oauth2-proxy/protocol/openid-connect/userinfo
+      - OAUTH2_PROXY_KEYCLOAK_GROUP=/kibana
+      - OAUTH2_PROXY_REQUEST_LOGGING=true
+      - OAUTH2_PROXY_AUTH_LOGGING=true
+  nginx-proxy:
+    build: nginx-proxy
+    container_name: nginx-proxy
+    links:
+      - elasticsearch
+    environment:
+      - NGINX_PORT=8081
+      - DIGEST=ZWxhc3RpYzpjaGFuZ2VtZQ==
+      - DOLLAR=$$
+      - BASE_PATH=/
+    command: /bin/bash -c "envsubst < /etc/nginx/nginx-template.conf > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+    restart: always
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    hostname: keycloak
+    domainname: mylab.local
+    environment:
+      DB_VENDOR: h2
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: admin
+      KEYCLOAK_LOGLEVEL: ALL # ALL, DEBUG, ERROR, FATAL, INFO, OFF, TRACE and WARN
+      KEYCLOAK_IMPORT: /tmp/realm.json    
+    volumes:
+      - type: bind
+        source: ./ssl/ca.pem
+        target: /etc/x509/https/ca.crt
+      - type: bind
+        source: ./ssl/keycloak.pem
+        target: /etc/x509/https/tls.crt
+      - type: bind
+        source: ./ssl/keycloak.key
+        target: /etc/x509/https/tls.key
+      - type: bind
+        source: ./realm-export.json
+        target: /tmp/realm.json
+    ports:
+      - 8080:8080
+volumes:
+  elasticsearch_data:
+    driver: local

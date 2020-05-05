@@ -1,0 +1,153 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: curator-config
+  labels:
+    app: curator
+data:
+  action_file.yml: |-
+    ---
+    actions:
+      1:
+        action: delete_indices
+        description: "Clean up ES by deleting old indices"
+        options:
+          timeout_override:
+          continue_if_exception: False
+          disable_action: False
+          ignore_empty_list: True
+        filters:
+        - filtertype: age
+          source: name
+          direction: older
+          timestring: '%Y.%m.%d'
+          unit: days
+          unit_count: 5
+          field:
+          stats_result:
+          epoch:
+          exclude: False
+  config.yml: |-
+    ---
+    client:
+      hosts:
+        - elasticsearch.logging
+      port: 9200
+      url_prefix:
+      use_ssl: True
+      certificate: /etc/config/root-ca.pem
+      client_cert: /etc/config/client.pem
+      client_key: /etc/config/client.key
+      ssl_no_validate: True
+      http_auth:
+      timeout: 30
+      master_only: False
+    logging:
+      loglevel: INFO
+      logfile:
+      logformat: default
+      blacklist: ['elasticsearch', 'urllib3']
+  root-ca.pem: |-
+    -----BEGIN CERTIFICATE-----
+    MIID2zCCAsOgAwIBAgIUb178BSAu1LUZTKjRcPLrQ9ovcTswDQYJKoZIhvcNAQEL
+    BQAwfTELMAkGA1UEBhMCVVMxEzARBgNVBAgMCkNhbGlmb3JuaWExEjAQBgNVBAcM
+    CVBhbG8gQWx0bzEPMA0GA1UECgwGSFAgSW5jMR0wGwYDVQQLDBRIUCBCdXNpbmVz
+    cyBQbGF0Zm9ybTEVMBMGA1UEAwwMSFBCUCBDQSBSb290MB4XDTIwMDQwMjIzMDQy
+    OFoXDTIwMDUwMjIzMDQyOFowfTELMAkGA1UEBhMCVVMxEzARBgNVBAgMCkNhbGlm
+    b3JuaWExEjAQBgNVBAcMCVBhbG8gQWx0bzEPMA0GA1UECgwGSFAgSW5jMR0wGwYD
+    VQQLDBRIUCBCdXNpbmVzcyBQbGF0Zm9ybTEVMBMGA1UEAwwMSFBCUCBDQSBSb290
+    MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxnMF7rHdZl6ykWKRoYVC
+    /3kkD5mCHsogJyZ+stVUJnz0vqiaTJfadvJyM42fhxQ69NvkvHdqY0dfezbut/WQ
+    AqrKSzXFpu6VRJcSxC8KDz782L6Eed/V78hl2UGMEs8vJZh5wGrXrKFE8t7+BAld
+    lnGsmDGMa4idJRgZoEheGnFBcu4mKCr2IWwcLiX/MlXWqbYoCOwIw40EqULFcDMq
+    OyiGeImWrkQ6hb4i2GaLgXNjH8sLfPh6uxc6k/mA/LqQywFvCnPQbhW2KTL4oK8B
+    umTGm2tCYp+buPw9vJwCc9VHbpom4JZQf3uLUEteJSuAkkhhqz6JaoscUors7eC7
+    NQIDAQABo1MwUTAdBgNVHQ4EFgQUbIFdFJCqNct0vPX1Ojs11qFqlnowHwYDVR0j
+    BBgwFoAUbIFdFJCqNct0vPX1Ojs11qFqlnowDwYDVR0TAQH/BAUwAwEB/zANBgkq
+    hkiG9w0BAQsFAAOCAQEAbOEEBmi1BeatTGVmrMF/v8sfrAwg5PaehlGl83q4SFsj
+    ksxBTAe9rJDNepThjdTpVL5sczN4iz1ZUB83TjhJMNARTqkM/P2f8amKkaN5pd7f
+    K14ts1Ev39qk8x+9uEchMsR4UPr4kST1z1D5fdgk/sydByB3G4EPLNDuXxhbjIJS
+    t6w5fEa6WaUOLJAo2zYI3DUyGWG7D2VMEoY2RCOwUpwvn6gfkeW6VKGx4wZN/uMJ
+    4iU/TND6DPX+D3p4RPuQWhPbZvHbLmiPNDWyC8pmhtJIbrEV0ed9vPYmMTxT/dZZ
+    k8graZg6R13aFdFgaCy7Ah+vKBBLgCv+YLYhKCtEPQ==
+    -----END CERTIFICATE-----
+  client.pem: |-
+    -----BEGIN CERTIFICATE-----
+    MIIDejCCAmICFCn1m+Zn+TZSRTIlEYSvQT18+anYMA0GCSqGSIb3DQEBCwUAMH0x
+    CzAJBgNVBAYTAlVTMRMwEQYDVQQIDApDYWxpZm9ybmlhMRIwEAYDVQQHDAlQYWxv
+    IEFsdG8xDzANBgNVBAoMBkhQIEluYzEdMBsGA1UECwwUSFAgQnVzaW5lc3MgUGxh
+    dGZvcm0xFTATBgNVBAMMDEhQQlAgQ0EgUm9vdDAeFw0yMDA0MDIyMzIwMDdaFw0y
+    MDA1MDIyMzIwMDdaMHYxCzAJBgNVBAYTAlVTMRMwEQYDVQQIDApDYWxpZm9ybmlh
+    MRIwEAYDVQQHDAlQYWxvIEFsdG8xDzANBgNVBAoMBkhQIEluYzEdMBsGA1UECwwU
+    SFAgQnVzaW5lc3MgUGxhdGZvcm0xDjAMBgNVBAMMBWFkbWluMIIBIjANBgkqhkiG
+    9w0BAQEFAAOCAQ8AMIIBCgKCAQEAodzMWBF03tRpVIkrcCx2z1ivV5f4CCyBeE12
+    QaIGwX/LeqMl6WOkeJvXobWvE+vatjulwMjZgZZs/s3YlVXFSsl7lwCx6JfIA13E
+    xg2KYpbqsln18TRZknjwJP59BR4bH2pgD4K059E9gGVWbn93Y0YJ3E9HtNfqFukR
+    Kv/Mc3zEh8FOKJS2m0vsyZhwPGrjQqX4Qg0myYjkEGG6jkpGY2/BppDUYjFF9wWR
+    0WWIn1CHFeb4Dz+ib5gJkti1Oie0aKZgvesL2Fqb6cM0SfIxgKdzEHO8yI0tC0T8
+    CLYXjGmi2pN7bTnCpCVjvjCds4Jha1l69mSz1IY+MDdx2bUfNwIDAQABMA0GCSqG
+    SIb3DQEBCwUAA4IBAQAW55xTOfPl3nMy52w3h5oNxLXNl36Mg+iAeBVd+G/i7xrp
+    y6Ybl1csv3mN8N78I7VoS9bHeaRsE1ps+hBPyKNeQCpl5rpeulBVLGG6ps2hQsYU
+    j4iouWkFzfztqatKDpDk7Pzg4VNnDIa7HruKubLStrmlR1ifx59xy0pRuBaKsdJR
+    vXzBJqGSsfUyCCYdXj8gBrf1+wsBhB2VpEdXRHnd3e0m76K8qMwHrPj/bqvwmJon
+    CRb8Qu23H7vAJODHmBqdEFpHvP8Bno2Cp4RMpFpfwduZHN72YiF/G9C21CReDAwm
+    fEXYcwuMCleJaisuChouYVDX8zhf51VU2kO8Mkrb
+    -----END CERTIFICATE-----
+  client.key: |-
+    -----BEGIN PRIVATE KEY-----
+    MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCh3MxYEXTe1GlU
+    iStwLHbPWK9Xl/gILIF4TXZBogbBf8t6oyXpY6R4m9ehta8T69q2O6XAyNmBlmz+
+    zdiVVcVKyXuXALHol8gDXcTGDYpiluqyWfXxNFmSePAk/n0FHhsfamAPgrTn0T2A
+    ZVZuf3djRgncT0e01+oW6REq/8xzfMSHwU4olLabS+zJmHA8auNCpfhCDSbJiOQQ
+    YbqOSkZjb8GmkNRiMUX3BZHRZYifUIcV5vgPP6JvmAmS2LU6J7RopmC96wvYWpvp
+    wzRJ8jGAp3MQc7zIjS0LRPwItheMaaLak3ttOcKkJWO+MJ2zgmFrWXr2ZLPUhj4w
+    N3HZtR83AgMBAAECggEAd4Xd9yJc1LaxWNU5mEmdKhtozxvO8eo7aKR6sJh+uKAv
+    l02mDyOfLdiWcDkDIYjGJk8BZMxroL99mOJUDmIZn9IMS0MeHI0IC0RQq5cQGyEq
+    Ca1YaVao1fosCoVJuF+004vvh0STZaMi8Q7jthC2Dj6HxYFdh/LwTx6nqMLfLF9G
+    t89/1ADGdf84N5yE3oSBsP8dj+QzC4Uoe4QZ8Kz94etV9PoGbfjJ1WlaEsA0qoDx
+    cv9BvroA7l4mMpjt+tO4L2wheKd3IMO6vvg7HNYg7uBgHifmIOigwjOnJOssFaaq
+    qeDwj2rY1RFB9BKxHu1Gm++c6VOWJYlHGZpFa2CEMQKBgQDT+RjW/VthUP6OS4Z6
+    32GYm8Aar6k0xVuhguvRLtaNAxQRcBIvXwhin65zyq6R5ZDUS/RWj/DlbqIn0ae9
+    jOsfqJw7xC7oaMWT3mAaYTQQX+8HvuXtOJtkYe6ZQgakhFaxloI9KgHgl5tbLvDb
+    7lUNBJbB2lW+5JDS1rQhj5ihIwKBgQDDe0DmyeLqKlpUCQLWW+sK9BWDmzRlCqlB
+    aAli+9v21GxHNNrciQfGNAosRtZo++KnhYukljFsZORLkfJHawpPmt78DydzYunf
+    paLCc1/Hnf/u/gP8ZTKupuF4v1Sol8PjafzPrixBJBF4j6XNt4Qz/S7zQFg22rI+
+    onmIT8As3QKBgQChkkNuzBt1KCmACO1uhwp7KmzZan/NK4nWqFZbUhpTzb7kM8qI
+    tSVNF23/8MPzjUpBp8uMl5cFKrkLJPF4uAsYTIsZu0YN/J5tQZl7QhBPUvB9tPLJ
+    SNaZQ1R9GSi7CeyS3KhVOsnHiYfvju4klZvaml7XUDb/lHUXYHRZCH1MhQKBgQC4
+    M11N2/FJzIz/YNpemZDa6nOXZtmxWKFy85DcyA1XAoXhd0nAxBMiTolDfaCunqPO
+    TYXvmmOKC2wgVa9iYtf9eScjhzgaf5t31gGPj94yII05a/zfiZB/iNsvx8MDdrbs
+    hUPngu1KmK0p2NpZBdO6lZn3N6uoTN3nLXyt2NBytQKBgDj1RImujCv3k/1PYVIp
+    UiMmPJVhhoyYi35pNzbYVo4E/SgII8EYtEbTJUNI7JOs5qP+wzrPSkz4fH/m6Ukb
+    /TzjGHjzE+glQfjgV1XaO6owhdgO14xlzXXRA43ug85LGqCC08y5SQYMbSuCdd+t
+    1NnWg/SkR8dOtxUG3s9R/loa
+    -----END PRIVATE KEY-----
+---
+apiVersion: batch/v1beta1 #for API server versions >= 1.8.0 use batch/v1beta1
+kind: CronJob
+metadata:
+  name: curator
+  labels:
+    app: curator
+spec:
+  schedule: "0 1 * * *"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 120
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - image: bobrik/curator:5.8.1
+            name: curator
+            args: ["--config", "/etc/config/config.yml", "/etc/config/action_file.yml"]
+            volumeMounts:
+            - name: config
+              mountPath: /etc/config
+          volumes:
+          - name: config
+            configMap:
+              name: curator-config
+          restartPolicy: OnFailure

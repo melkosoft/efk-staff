@@ -1,0 +1,62 @@
+# index_name, logstash_prefix
+#
+---
+apiVersion: v1
+data:
+  password: cURMNUdiSGNUOHBtMFFJUkQyWTZB
+  username: YWRtaW4=
+kind: Secret
+metadata:
+  name: es-secrets
+---
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: ClusterOutput
+metadata:
+  name: cluster-output-tenant2
+  namespace: logging
+spec:
+  elasticsearch:
+    host: elasticsearch.logging.svc.cluster.local
+    port: 9200
+    scheme: https
+    ssl_verify: false
+    ssl_version: TLSv1_2
+    user: admin
+    password:
+      valueFrom:
+        secretKeyRef:
+          name: es-secrets
+          key: password
+    index_name: user2.%Y%m%d
+    buffer:
+      timekey: 20m
+      timekey_wait: 30s
+      timekey_use_utc: true
+      retry_forever: false
+      retry_max_times: 3
+---
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: ClusterFlow
+metadata:
+  name: cluster-flow-cust2
+  namespace: logging
+spec:
+  match:
+    - select:
+        labels:
+           tenant: customer2
+        namespaces:
+          - demo-2
+          - demo-1
+  filters:
+    - tag_normaliser: 
+        format: ${namespace_name}.${pod_name}.${container_name}
+    - parser:
+        remove_key_name_field: true
+        reserve_data: true
+        parse:
+          type: nginx
+    - stdout:
+        output_type: json
+  outputRefs:
+    - cluster-output-tenant2

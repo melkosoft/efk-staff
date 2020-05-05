@@ -1,0 +1,16 @@
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: Logging
+metadata:
+  name: logging-cn
+spec:
+  fluentd: 
+    logLevel: debug
+  fluentbit:
+    image:
+      pullPolicy: IfNotPresent
+      repository: fluent/fluent-bit
+      tag: 1.4.2-debug
+  controlNamespace: logging
+  watchNamespaces:
+    - demo-1
+    - demo-2
