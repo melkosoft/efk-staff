@@ -38,6 +38,4 @@ Account used for Kibana has all admin rights
   * **fluent-bit** - lightweigth fluentd version with smaller resource usage footprint, faster but with less number of plugins. It runs on each node and send ALL kubernetes logs to *fluend*. *Fluent-bit* use API servers to collect additional information about pods - pod name, container name, namespace, and send it to *fluentd* too
   * **Fluentd** - main power horse, accept logs from *fluent-bit*, make changes to log, drop logs from pods excluded and send logs to configured Outputs. As target for f*fluentd* we can use Kafka, AWS S3, Elasticsearch and [others](https://github.com/banzaicloud/logging-operator/tree/master/docs/plugins/outputs)
 
-![Operator Flow diagram]
-(https://github.com/banzaicloud/logging-operator/blob/master/docs/img/logging_operator_flow.png)
 
