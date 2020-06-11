@@ -1,0 +1,118 @@
+---
+apiVersion: v1
+data:
+  postgres_db: a2V5Y2xvYWs=
+  postgres_pwd: UW56VGhhSWVHNGV5eWN2Ylg4US9tZz09
+  postgres_user: a2V5Y2xvYWs=
+kind: Secret
+metadata:
+  name: postgres
+  namespace: logging
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres1
+  namespace: logging
+  labels:
+    app: postgres1
+spec:
+  serviceName: postgres1
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres1
+  template:
+    metadata:
+      annotations:
+        iam.amazonaws.com/role: arn:aws:iam::198814579854:role/auth-dev-backup-s3
+      labels:
+        app: postgres1
+    spec:
+      securityContext:
+        fsGroup: 1000
+#        securityContext:
+#          privileged: true
+      volumes:
+        - name: postgresdb-data
+          emptyDir: {}
+        - name: pg-data
+          emptyDir: {}
+      containers:
+        - name: spot-manager
+          image: 198814579854.dkr.ecr.us-east-1.amazonaws.com/devops/pg_utils:1.0.5
+          imagePullPolicy: "Always"
+#          command: ["/bin/sh", "-c", "/home/user/restoreDatabase.sh"]
+          resources:
+            requests:
+              cpu: 5m
+              memory: 20Mi
+            limits:
+              cpu: 100m
+              memory: 100Mi
+          env:
+           - name: S3_BUCKET
+             value: auth-dev-backup
+           - name: PGHOST
+             value: "postgres.logging.svc.cluster.local"
+           - name: PGPORT
+             value: "5432"
+           - name: NODE_NAME
+             valueFrom:
+               fieldRef:
+                 fieldPath: spec.nodeName
+           - name: PGDATABASE
+             valueFrom:
+               secretKeyRef:
+                 name: postgres
+                 key: postgres_db
+           - name: PGUSER
+             valueFrom:
+               secretKeyRef:
+                 name: postgres
+                 key: postgres_user
+           - name: PGPASSWORD
+             valueFrom:
+               secretKeyRef:
+                 name: postgres
+                 key: postgres_pwd
+        - name: postgres1
+          image: postgres:10.4
+          imagePullPolicy: "IfNotPresent"
+          env:
+           - name: POSTGRESS_DB
+             valueFrom:
+               secretKeyRef:
+                 name: postgres
+                 key: postgres_db
+           - name: POSTGRES_USER
+             valueFrom:
+               secretKeyRef:
+                 name: postgres
+                 key: postgres_user
+           - name: POSTGRES_PASSWORD
+             valueFrom:
+               secretKeyRef:
+                 name: postgres
+                 key: postgres_pwd
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+#            - name: pg-data
+#              mountPath: "/home/user/pg_backup"
+            - mountPath: /var/lib/postgresql/data
+              name: postgresdb-data
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres1
+  labels:
+    app: postgres1
+spec:
+  type: ClusterIP
+  ports:
+   - port: 5432
+  selector:
+   app: postgres1

@@ -1,0 +1,57 @@
+---
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: Flow
+metadata:
+  name: flow-system
+  namespace: kube-system
+spec:
+  match:
+    - select: {}
+  filters:
+    - tag_normaliser: 
+        format: ${namespace_name}.${pod_name}.${container_name}
+    - parser:
+        remove_key_name_field: true
+        reserve_data: true
+        parse:
+          type: none
+  outputRefs:
+    - cluster-system
+---
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: Flow
+metadata:
+  name: flow-system
+  namespace: istio-system
+spec:
+  match:
+    - select: {}
+  filters:
+    - tag_normaliser: 
+        format: ${namespace_name}.${pod_name}.${container_name}
+    - parser:
+        remove_key_name_field: true
+        reserve_data: true
+        parse:
+          type: none
+  outputRefs:
+    - cluster-system
+---
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: Flow
+metadata:
+  name: flow-system
+  namespace: monitoring
+spec:
+  match:
+    - select: {}
+  filters:
+    - tag_normaliser: 
+        format: ${namespace_name}.${pod_name}.${container_name}
+    - parser:
+        remove_key_name_field: true
+        reserve_data: true
+        parse:
+          type: none
+  outputRefs:
+    - cluster-system

@@ -1,0 +1,50 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pg-backup
+  namespace: logging
+spec:
+  template:
+    metadata:
+      annotations:
+        iam.amazonaws.com/role: arn:aws:iam::198814579854:role/auth-dev-backup-s3
+    spec:
+#      serviceAccountName: ecr-access-watcher
+      imagePullSecrets:
+      - name: ecr-pull-core
+      volumes:
+       - name: pg-data
+         emptyDir: {}
+      containers:
+      - name: pg-backup
+        image: 198814579854.dkr.ecr.us-east-1.amazonaws.com/devops/pg_backup:1.0.1
+        volumeMounts:
+         - name: pg-data
+           mountPath: "/home/user/pg_backup"
+        env:
+         - name: S3_BUCKET
+           value: auth-dev-backup
+         - name: PGHOST
+           value: "postgres.logging.svc.cluster.local"
+         - name: PGPORT
+           value: 5432
+         - name: PGDATABASE
+           valueFrom:
+             secretKeyRef:
+               name: postgres
+               key: postgres_db
+         - name: PGUSER
+           valueFrom:
+             secretKeyRef:
+               name: postgres
+               key: postgres_user
+         - name: PGPASSWORD
+           valueFrom:
+             secretKeyRef:
+               name: postgres
+               key: postgres_pwd
+      restartPolicy: Never
+  backoffLimit: 4
+  activeDeadlineSeconds: 100
+  ttlSecondsAfterFinished: 100

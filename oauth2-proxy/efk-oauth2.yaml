@@ -1,0 +1,98 @@
+version: '3.2'
+services:
+  node1:
+    image: amazon/opendistro-for-elasticsearch:1.6.0
+    container_name: node1
+    hostname: node1
+    domainname: mylab.local
+    environment:
+      - cluster.name=es-cluster
+      - node.name=node1
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true # along with the memlock settings below, disables swapping
+      - bootstrap.system_call_filter=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m" # minimum and maximum Java heap size, recommend setting both to 50% of system RAM
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536 # maximum number of open files for the Elasticsearch user, set to at least 65536 on modern systems
+        hard: 65536
+    volumes:
+      - "data1:/usr/share/elasticsearch/data"
+      - "./config/elastic.conf:/etc/sysctl.d/elastic.conf"
+      - "./config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml"
+      - "./config/log4j2.properties.debug:/usr/share/elasticsearch/config/log4j2.properties"
+      - "./ssl/aws/root-ca.pem:/usr/share/elasticsearch/config/root-ca.pem:ro"
+      - "./ssl/aws/node1.pem:/usr/share/elasticsearch/config/node.pem:ro"
+      - "./ssl/aws/node1.key:/usr/share/elasticsearch/config/node.key:ro"
+      - "./ssl/aws/root-ca.pem:/usr/share/elasticsearch/config/admin-root-ca.pem:ro"
+      - "./ssl/aws/admin.pem:/usr/share/elasticsearch/config/admin.pem:ro"
+      - "./ssl/aws/admin.key:/usr/share/elasticsearch/config/admin.key:ro"
+# Security Plugin configuration
+      - "./config/config.yml.oauth2:/usr/share/elasticsearch/plugins/opendistro_security/securityconfig/config.yml"
+#      - "./security/action_groups.yml:/usr/share/elasticsearch/plugins/opendistro_security/securityconfig/action_groups.yml"
+#      - "./security/internal_users.yml:/usr/share/elasticsearch/plugins/opendistro_security/securityconfig/internal_users.yml"
+#      - "./config/roles.yml:/usr/share/elasticsearch/plugins/opendistro_security/securityconfig/roles.yml"
+      - "./config/roles_mapping.yml:/usr/share/elasticsearch/plugins/opendistro_security/securityconfig/roles_mapping.yml"
+#      - "./security/tenants.yml:/usr/share/elasticsearch/plugins/opendistro_security/securityconfig/tenants.yml"
+    ports:
+      - 9200:9200
+      - 9300:9300
+    networks:
+      - es-net
+
+  kibana:
+    image: amazon/opendistro-for-elasticsearch-kibana:1.6.0
+    container_name: kibana
+    hostname: kibana
+    domainname: mylab.local
+    volumes:
+      - "./config/kibana.yml.oauth2:/usr/share/kibana/config/kibana.yml"
+      - "./ssl/aws/kibana.pem:/usr/share/kibana/config/kibana.pem:ro"
+      - "./ssl/aws/kibana.key:/usr/share/kibana/config/kibana.key:ro"
+      - "./ssl/aws/root-ca.pem:/usr/share/kibana/config/root-ca.pem:ro"
+    ports:
+      - 5601:5601
+    expose:
+      - "5601"
+    environment:
+      CLUSTER_NAME: es-cluster
+      SERVER_SSL_ENABLED: "true"
+      SERVER_SSL_KEY: /usr/share/kibana/config/kibana.key
+      SERVER_SSL_CERTIFICATE: /usr/share/kibana/config/kibana.pem
+    networks:
+      - es-net
+  oauth2-proxy:
+    image: quay.io/pusher/oauth2_proxy:v5.1.1
+    container_name: oauth2-proxy
+    hostname: oauth2-proxy
+    domainname: mylab.io
+    restart: always
+    ports:
+      - "4180:4180"
+    links:
+      - kibana
+    environment:
+      - OAUTH2_PROXY_EMAIL_DOMAINS=*
+      - OAUTH2_PROXY_UPSTREAMS=http://kibana:5601/
+      - OAUTH2_PROXY_HTTP_ADDRESS=http://0.0.0.0:4180
+      - OAUTH2_PROXY_REQUEST_LOGGING=true
+      - OAUTH2_PROXY_APPROVAL_PROMPT=auto
+      - OAUTH2_PROXY_REDIRECT_URL=http://oauth2-proxy.mylab.io:4180
+      - OAUTH2_PROXY_COOKIE_NAME=_oauth2_proxy
+      - OAUTH2_PROXY_COOKIE_SECRET=secretsecret
+      - OAUTH2_PROXY_COOKIE_SECURE=false
+      - OAUTH2_PROXY_COOKIE_DOMAINS=mylab.io
+      - OAUTH2_PROXY_COOKIE_HTTPONLY=true
+      - OAUTH2_PROXY_PROVIDER=google
+      - OAUTH2_PROXY_CLIENT_ID=314212678731-s76rr0j13ttvsvhalbkdvr9o9c64s8rs.apps.googleusercontent.com
+      - OAUTH2_PROXY_CLIENT_SECRET=GEnrAvahCkFEeOdeRzOyq7Di
+      - OAUTH2_PROXY_WHITELIST_DOMAINS=.mylab.io
+    networks:
+      - es-net
+volumes:
+  data1:
+networks:
+  es-net:

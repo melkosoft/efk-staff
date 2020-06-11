@@ -1,0 +1,9 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations:
+    iam.amazonaws.com/allowed-roles: |
+      ["arn:aws:iam::198814579854:role/ecr-pull-core", 
+       "arn:aws:iam::198814579854:role/auth-dev-backup-s3"]
+  name: logging

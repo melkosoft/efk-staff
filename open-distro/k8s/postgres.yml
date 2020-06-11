@@ -1,0 +1,86 @@
+---
+apiVersion: v1
+data:
+  postgres_db: a2V5Y2xvYWs=
+  postgres_pwd: UW56VGhhSWVHNGV5eWN2Ylg4US9tZz09
+  postgres_user: a2V5Y2xvYWs=
+kind: Secret
+metadata:
+  name: postgres
+  namespace: logging
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: logging
+  labels:
+    app: postgres
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      securityContext:
+        fsGroup: 1000
+      nodeSelector:
+        failure-domain.beta.kubernetes.io/zone: us-east-1b 
+      containers:
+        - name: postgres
+          image: postgres:10.4
+          imagePullPolicy: "IfNotPresent"
+          env:
+           - name: POSTGRESS_DB
+             valueFrom:
+               secretKeyRef:
+                 name: postgres
+                 key: postgres_db
+           - name: POSTGRES_USER
+             valueFrom:
+               secretKeyRef:
+                 name: postgres
+                 key: postgres_user
+           - name: POSTGRES_PASSWORD
+             valueFrom:
+               secretKeyRef:
+                 name: postgres
+                 key: postgres_pwd
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgresdb-data
+      volumes:
+       - name: postgresdb-data
+         persistentVolumeClaim:
+           claimName: postgres-pvc
+#  volumeClaimTemplates:
+#  - metadata:
+#      annotations:
+#        volume.beta.kubernetes.io/storage-class: es-gp2-storage
+#      name: postgresdb-data
+#    spec:
+#      accessModes:
+#      - ReadWriteOnce
+#      resources:
+#        requests:
+#          storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  type: ClusterIP
+  ports:
+   - port: 5432
+  selector:
+   app: postgres

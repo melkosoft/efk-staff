@@ -1,0 +1,1 @@
+opendistro_security.compliance.salt to be a random string of 16 chars length identical on all nodes

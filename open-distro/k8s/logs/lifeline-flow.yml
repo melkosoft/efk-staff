@@ -1,0 +1,19 @@
+---
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: Flow
+metadata:
+  name: flow-lifeline
+  namespace: lifeline-dev-default
+spec:
+  match:
+    - select: {}
+  filters:
+    - tag_normaliser: 
+        format: ${namespace_name}.${pod_name}.${container_name}
+    - parser:
+        remove_key_name_field: true
+        reserve_data: true
+        parse:
+          type: none
+  outputRefs:
+    - cluster-lifeline

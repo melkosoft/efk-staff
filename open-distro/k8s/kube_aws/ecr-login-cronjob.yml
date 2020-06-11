@@ -1,0 +1,55 @@
+---
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  annotations:
+  name: ecr-cred-helper
+  namespace: logging
+spec:
+  concurrencyPolicy: Allow
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          annotations:
+            iam.amazonaws.com/role: arn:aws:iam::198814579854:role/ecr-pull-core
+        spec:
+          serviceAccountName: ecr-access-watcher
+          imagePullSecrets:
+            - name: ecr-pull-core
+          containers:
+          - name: ecr-cred-helper
+            image: 198814579854.dkr.ecr.us-east-1.amazonaws.com/devops/aws-kubectl:1.0.0
+            imagePullPolicy: IfNotPresent
+            command:
+            - /bin/sh
+            - -c
+            - |-
+              echo "Requesting login token"
+              TOKEN=$(aws ecr get-login-password --region ${AWS_REGION})
+              echo "Deleting old secret"
+              kubectl -n ${NAMESPACE} delete secret --ignore-not-found $SECRET_NAME
+              echo "Generating new secret"
+              kubectl -n ${NAMESPACE} create secret docker-registry $SECRET_NAME \
+              --docker-server=${AWS_ACCOUNT}.dkr.ecr.${AWS_REGION}.amazonaws.com \
+              --docker-username=AWS \
+              --docker-password="${TOKEN}" 
+              echo "Secret created by name. $SECRET_NAME"
+              echo "All done."
+            env:
+            - name: AWS_ACCOUNT
+              value: "198814579854"
+            - name: AWS_REGION
+              value: us-east-1
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace       
+            - name: SECRET_NAME
+              value: ecr-pull-core
+          restartPolicy: Never
+          schedulerName: default-scheduler
+          terminationGracePeriodSeconds: 30
+  schedule: 0 */6 * * *
+  successfulJobsHistoryLimit: 3

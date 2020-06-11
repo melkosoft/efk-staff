@@ -1,0 +1,84 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: flog1
+    tenant: customer1
+  name: flog1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flog1
+  template:
+    metadata:
+      labels:
+        app: flog1
+        tenant: customer1
+    spec:
+      containers:
+      - image: mingrammer/flog
+        name: flog1
+        args:
+          - "-f"
+          - "apache_combined"        
+          - "-d"
+          - "600"
+          - "-l"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: flog2
+    tenant: customer2
+  name: flog2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flog2
+  template:
+    metadata:
+      labels:
+        app: flog2
+        tenant: customer2
+    spec:
+      containers:
+      - image: mingrammer/flog
+        name: flog2
+        args:
+          - "-f"
+          - "apache_combined"        
+          - "-d"
+          - "600"
+          - "-l"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: flog3
+    tenant: customer3
+  name: flog3
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flog3
+  template:
+    metadata:
+      labels:
+        app: flog3
+        tenant: customer3
+    spec:
+      containers:
+      - image: mingrammer/flog
+        name: flog3
+        args:
+          - "-f"
+          - "apache_combined"        
+          - "-d"
+          - "600"
+          - "-l"

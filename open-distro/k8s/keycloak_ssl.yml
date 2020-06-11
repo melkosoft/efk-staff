@@ -1,0 +1,64 @@
+# iceadmin, P0aGHl04c6pPxA==
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  namespace: logging
+  labels:
+    app: keycloak
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+     app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      imagePullSecrets:
+      - name: ecr-pull-core
+      initContainers:
+      - name: check_pg_status
+        image: 198814579854.dkr.ecr.us-east-1.amazonaws.com/devops/pg_utils:1.0.5
+        command: ["while", "pg_isready", "-h", "$DB_ADDR;", "do", "sleep 1;", "done"]
+        env:
+        - name: PGHOST
+          value: postgres
+        - name: PGPORT
+          value: "5432"
+      containers:
+      - name: keycloak
+        image: 198814579854.dkr.ecr.us-east-1.amazonaws.com/core/keycloak:10.0.1
+        env:
+        - name: DB_VENDOR
+          value: postgres
+        - name: DB_ADDR
+          value: postgres
+        - name: DB_DATABASE
+          valueFrom: 
+            secretKeyRef:
+              name: postgres
+              key: postgres_db
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: postgres
+              key: postgres_user
+        - name: DB_SCHEMA
+          value: public
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: postgres
+              key: postgres_pwd
+        - name: KEYCLOAK_USER
+          value: iceadmin
+        - name: KEYCLOAK_PASSWORD
+          value: P0aGHl04c6pPxA==
+        - name: PROXY_ADDRESS_FORWARDING
+          value: "true"
+        ports:
+        - name: web
+          containerPort: 8080

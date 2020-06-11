@@ -1,0 +1,76 @@
+---
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: Flow
+metadata:
+  name: flow-xr
+  namespace: hpbp-dev-default
+spec:
+  match:
+    - select: {}
+  filters:
+    - tag_normaliser: 
+        format: ${namespace_name}.${pod_name}.${container_name}
+    - parser:
+        remove_key_name_field: true
+        reserve_data: true
+        parse:
+          type: none
+  outputRefs:
+    - cluster-xr
+---
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: Flow
+metadata:
+  name: flow-xr
+  namespace: hpbp-qa-default
+spec:
+  match:
+    - select: {}
+  filters:
+    - tag_normaliser: 
+        format: ${namespace_name}.${pod_name}.${container_name}
+    - parser:
+        remove_key_name_field: true
+        reserve_data: true
+        parse:
+          type: none
+  outputRefs:
+    - cluster-xr
+---
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: Flow
+metadata:
+  name: flow-xr
+  namespace: vr-dev-default
+spec:
+  match:
+    - select: {}
+  filters:
+    - tag_normaliser: 
+        format: ${namespace_name}.${pod_name}.${container_name}
+    - parser:
+        remove_key_name_field: true
+        reserve_data: true
+        parse:
+          type: none
+  outputRefs:
+    - cluster-xr
+---
+apiVersion: logging.banzaicloud.io/v1beta1
+kind: Flow
+metadata:
+  name: flow-xr
+  namespace: vr-qa-default
+spec:
+  match:
+    - select: {}
+  filters:
+    - tag_normaliser: 
+        format: ${namespace_name}.${pod_name}.${container_name}
+    - parser:
+        remove_key_name_field: true
+        reserve_data: true
+        parse:
+          type: none
+  outputRefs:
+    - cluster-xr

@@ -1,0 +1,761 @@
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: es-gp2-storage
+parameters:
+  fsType: ext4
+  type: gp2
+provisioner: kubernetes.io/aws-ebs
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elasticsearch
+  namespace: logging
+  labels:
+    app: elasticsearch
+data:
+  roles_mapping.yml: |-
+    ---
+    manage_snapshots:
+      reserved: true
+      hidden: false
+      backend_roles:
+      - "snapshotrestore"
+      hosts: []
+      users: []
+      and_backend_roles: []
+    logstash:
+      reserved: false
+      hidden: false
+      backend_roles:
+      - "logstash"
+      hosts: []
+      users: []
+      and_backend_roles: []
+    own_index:
+      reserved: false
+      hidden: false
+      backend_roles: []
+      hosts: []
+      users:
+      - "*"
+      and_backend_roles: []
+      description: "Allow full access to an index named like the username"
+    kibana_user:
+      reserved: false
+      hidden: false
+      backend_roles:
+      - "kibanauser"
+      hosts: []
+      users: 
+      - "mmamaenko@yahoo.com"
+      and_backend_roles: []
+      description: "Maps kibanauser to kibana_user"
+    complex-role:
+      reserved: false
+      hidden: false
+      backend_roles:
+      - "ldap-analyst"
+      hosts: []
+      users:
+      - "new-user"
+      and_backend_roles: []
+    _meta:
+      type: "rolesmapping"
+      config_version: 2
+    all_access:
+      reserved: true
+      hidden: false
+      backend_roles:
+      - "admin"
+      hosts: []
+      users: 
+      - "admin"
+      - "mamaenko@hp.com"
+      - "yong.jiang1@hp.com"
+      - "john.zheng@hp.com"
+      - "brant.cao@hp.com"
+      - "xiaofeng.xu@hp.com"
+      - "hao.zheng1@hp.com"
+      - "yang.yang@hp.com"
+      and_backend_roles: []
+      description: "Maps admin to all_access"
+    readall:
+      reserved: true
+      hidden: false
+      backend_roles:
+      - "readall"
+      hosts: []
+      users: []
+      and_backend_roles: []
+    kibana_server:
+      reserved: true
+      hidden: false
+      backend_roles: []
+      hosts: []
+      users:
+      - "kibanaserver"
+      and_backend_roles: []
+  action_groups.yml: |-
+    ---
+    my-action-group:
+      reserved: false
+      hidden: false
+      allowed_actions:
+      - "indices:data/write/index*"
+      - "indices:data/write/update*"
+      - "indices:admin/mapping/put"
+      - "indices:data/write/bulk*"
+      - "read"
+      - "write"
+      static: false
+    _meta:
+      type: "actiongroups"
+      config_version: 2
+  internal_users.yml: |-
+    ---
+    _meta:
+      type: "internalusers"
+      config_version: 2
+    admin:
+      hash: "$2y$12$hFW93d5Wcpi7cQ0M9T3hheA3iWQzfL7/FwE4ETEiJRVsnGZXrB0gm"
+      reserved: true
+      backend_roles:
+      - "admin"
+      description: "admin user"
+    kibanaserver:
+      hash: "$2y$12$wfIBsxpMkp5UitbzNerMNuuL46teKY48coWb29lIQblIR2e2VAH7."
+      reserved: true
+      backend_roles:
+      - "admin"
+      description: "kibanaserver user"
+    kibanaro:
+      hash: "$2a$12$JJSXNfTowz7Uu5ttXfeYpeYE0arACvcwlPBStB1F.MI7f0U9Z4DGC"
+      reserved: false
+      backend_roles:
+      - "kibanauser"
+      - "readall"
+      attributes:
+        attribute1: "value1"
+        attribute2: "value2"
+        attribute3: "value3"
+      description: "Demo kibanaro user"
+    logstash:
+      hash: "$2a$12$u1ShR4l4uBS3Uv59Pa2y5.1uQuZBrZtmNfqB3iM/.jL0XoV9sghS2"
+      reserved: false
+      backend_roles:
+      - "logstash"
+      description: "Demo logstash user"
+    readall:
+      hash: "$2a$12$ae4ycwzwvLtZxwZ82RmiEunBbIPiAmGZduBAjKN0TXdwQFtCwARz2"
+      reserved: false
+      backend_roles:
+      - "readall"
+      description: "Demo readall user"
+    snapshotrestore:
+      hash: "$2y$12$DpwmetHKwgYnorbgdvORCenv4NAK8cPUg8AI6pxLCuWf/ALc0.v7W"
+      reserved: false
+      backend_roles:
+      - "snapshotrestore"
+      description: "Demo snapshotrestore user"
+  elasticsearch.yml: |-
+    cluster:
+      name: ${CLUSTER_NAME}
+    network.host: ${NETWORK_HOST}
+    path:
+      data: /usr/share/elasticsearch/data
+      logs: /usr/share/elasticsearch/logs
+    http:
+      compression: true
+    #discovery.type: single-node
+    discovery.seed_hosts:
+     - elasticsearch-discovery.logging
+    cluster.initial_master_nodes:
+     - node-0
+    # TLS Configuration Transport Layer
+    opendistro_security.ssl.transport.pemcert_filepath: node.pem
+    opendistro_security.ssl.transport.pemkey_filepath: node.key
+    opendistro_security.ssl.transport.pemtrustedcas_filepath: root-ca.pem
+    opendistro_security.ssl.transport.enforce_hostname_verification: false
+    opendistro_security.ssl.transport.resolve_hostname: false
+    # TLS Configuration REST Layer
+    opendistro_security.ssl.http.enabled: true
+    opendistro_security.ssl.http.pemcert_filepath: node_http.pem
+    opendistro_security.ssl.http.pemkey_filepath: node_http.key
+    opendistro_security.ssl.http.pemtrustedcas_filepath: root-ca.pem
+    # Demo Certificate Option Disabled
+    opendistro_security.allow_unsafe_democertificates: true
+    opendistro_security.allow_default_init_securityindex: true
+
+    opendistro_security.authcz.admin_dn:
+      - 'CN=admin'
+      - CN=kirk.example.com,OU=Ops,O=Example Com\, Inc.,DC=example,DC=com
+    opendistro_security.nodes_dn:
+      - 'CN=*.example.com'
+    opendistro_security.audit.type: internal_elasticsearch
+    opendistro_security.enable_snapshot_restore_privilege: true
+    opendistro_security.check_snapshot_restore_write_privileges: true
+    opendistro_security.restapi.roles_enabled: ["all_access", "security_rest_api_access"]
+    cluster.routing.allocation.disk.threshold_enabled: false
+    opendistro_security.audit.config.disabled_rest_categories: NONE
+    opendistro_security.audit.config.disabled_transport_categories: NONE
+  log4j2.properties: |-
+    status = error
+    appender.console.type = Console
+    appender.console.name = console
+    appender.console.layout.type = PatternLayout
+    appender.console.layout.pattern = [%d{ISO8601}][%-5p][%-25c{1.}] [%node_name]%marker %m%n
+    rootLogger.level = info
+    rootLogger.appenderRef.console.ref = console
+  config.yml: |-
+    ---
+    _meta:
+      type: "config"
+      config_version: 2
+    config:
+      dynamic:
+        kibana:
+          multitenancy_enabled: true
+          index: '.kibana'
+        do_not_fail_on_forbidden: true
+        http:
+          anonymous_auth_enabled: false
+          xff:
+            enabled: false
+            internalProxies: '192\.168\.0\.10|192\.168\.0\.11' # regex pattern
+        authc:
+          basic_internal_auth_domain:
+            http_enabled: true
+            order: 0
+            http_authenticator:
+              type: basic
+              challenge: false
+            authentication_backend:
+              type: internal
+          openid_auth_domain:
+            http_enabled: true
+            transport_enabled: true
+            order: 1
+            http_authenticator:
+              type: openid
+              challenge: false
+              config:
+                subject_key: email
+                openid_connect_url: "https://key-dev.hpbp.io/auth/realms/kibana/.well-known/openid-configuration"
+                enable_ssl: true
+                verify_hostnames: false
+            authentication_backend:
+              type: noop
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: elasticsearch
+  name: elasticsearch
+  namespace: logging
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch
+  namespace: logging
+  labels:
+    component: elasticsearch
+spec:
+  selector:
+    component: elasticsearch
+  ports:
+  - name: http
+    port: 9200
+  - name: metrics
+    port: 9600
+  clusterIP: None
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: elasticsearch-discovery
+  namespace: logging
+  labels:
+    component: elasticsearch
+spec:
+  selector:
+    component: elasticsearch
+  ports:
+  - name: transport
+    port: 9300
+    protocol: TCP
+  clusterIP: None
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    component: elasticsearch
+  name: node
+  namespace: logging
+spec:
+  serviceName: node
+  replicas: 1 # Number of Elasticsearch master nodes to deploy
+  selector:
+    matchLabels:
+      component: elasticsearch
+  template:
+    metadata:
+      labels:
+        component: elasticsearch
+    spec:
+      securityContext:
+        fsGroup: 1000
+      # Anti-affinity to disallow deploying client and master nodes on the same worker node
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - topologyKey: "kubernetes.io/hostname"
+            labelSelector:
+              matchLabels:
+                component: elasticsearch
+      initContainers:
+      - name: init-sysctl
+        image: busybox:1.27.2
+        command:
+        - sysctl
+        - -w
+        - vm.max_map_count=2621440
+        securityContext:
+          privileged: true
+      containers:
+      - name: node
+        env:
+        - name: CLUSTER_NAME
+          value: logs
+        - name: NETWORK_HOST
+          value: "0.0.0.0"
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: DISCOVERY_SERVICE
+          value: elasticsearch-discovery
+        - name: KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: ES_JAVA_OPTS
+          value: -Xms1g -Xmx1g
+        livenessProbe:
+          tcpSocket:
+            port: transport
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        # Official Image from Open Distro Team
+        image: amazon/opendistro-for-elasticsearch:1.6.0
+        resources:
+          requests:
+            memory: 2Gi
+            cpu: "100m"
+          limits:
+            memory: 2Gi
+            cpu: "1"
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9300
+          name: transport
+        - containerPort: 9200
+          name: http
+        - containerPort: 9600
+          name: metrics
+        volumeMounts:
+        - name: es-persistent-storage
+          mountPath: /usr/share/elasticsearch/data
+        - mountPath: /etc/localtime
+          name: host-time
+        - mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+          name: config
+          subPath: elasticsearch.yml
+        - mountPath: /usr/share/elasticsearch/config/log4j2.properties
+          name: config
+          subPath: log4j2.properties
+        - mountPath: /usr/share/elasticsearch/plugins/opendistro_security/securityconfig/config.yml
+          name: config
+          subPath: config.yml
+        - mountPath: /usr/share/elasticsearch/config/node.pem
+          name: certs
+          subPath: node.pem
+          readOnly: true
+        - mountPath: /usr/share/elasticsearch/config/node.key
+          name: certs
+          subPath: node.key
+          readOnly: true
+        - mountPath: /usr/share/elasticsearch/config/node_http.pem
+          name: certs
+          subPath: node_http.pem
+          readOnly: true
+        - mountPath: /usr/share/elasticsearch/config/node_http.key
+          name: certs
+          subPath: node_http.key
+          readOnly: true
+        - mountPath: /usr/share/elasticsearch/config/root-ca.pem
+          name: certs
+          subPath: root-ca.pem
+          readOnly: true
+        - mountPath: /usr/share/elasticsearch/config/admin.pem
+          name: certs
+          subPath: admin.pem
+          readOnly: true
+        - mountPath: /usr/share/elasticsearch/config/admin.key
+          name: certs
+          subPath: admin.key
+          readOnly: true
+        - mountPath: /usr/share/elasticsearch/config/admin-root-ca.pem
+          name: certs
+          subPath: admin-root-ca.pem
+          readOnly: true
+        - mountPath: /usr/share/elasticsearch/config/ca/keycloak-ca.pem
+          name: certs
+          subPath: keycloak-ca.pem
+          readOnly: true
+        - mountPath: /usr/share/elasticsearch/plugins/opendistro_security/securityconfig/internal_users.yml
+          name: config
+          subPath: internal_users.yml
+        - mountPath: /usr/share/elasticsearch/plugins/opendistro_security/securityconfig/roles_mapping.yml
+          name: config
+          subPath: roles_mapping.yml
+      volumes:
+      - name: host-time
+        hostPath:
+          path: /etc/localtime
+          type: ""
+      - name: config
+        configMap:
+          name: elasticsearch
+      - name: certs
+        secret:
+          secretName: elasticsearch-tls-data
+  updateStrategy:
+    rollingUpdate:
+      partition: 0
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - metadata:
+      annotations:
+        volume.beta.kubernetes.io/storage-class: es-gp2-storage
+      name: es-persistent-storage
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 100Gi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: elasticsearch-tls-data
+  namespace: logging
+type: Opaque
+stringData:
+  node.pem: |-
+    -----BEGIN CERTIFICATE-----
+    MIIERjCCAy6gAwIBAgIGAXGNt4UKMA0GCSqGSIb3DQEBCwUAMHgxEzARBgoJkiaJ
+    k/IsZAEZFgNjb20xFzAVBgoJkiaJk/IsZAEZFgdleGFtcGxlMRowGAYDVQQKDBFF
+    eGFtcGxlIENvbSwgSW5jLjELMAkGA1UECwwCQ0ExHzAdBgNVBAMMFnNpZ25pbmcu
+    Y2EuZXhhbXBsZS5jb20wHhcNMjAwNDE4MTQzNTQ5WhcNMzAwNDE2MTQzNTQ5WjAY
+    MRYwFAYDVQQDDA0qLmV4YW1wbGUuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A
+    MIIBCgKCAQEAr3BYsVd2fDeGonGVfQ7s9TbseY0kqC8x+Ahwx/fGKBGftumVXr1F
+    nCV38Ax9guUb60Gc2pWI23n3wZdvZs+S3ErtROaWyYHSCwD/H0lFjLfCi2QcLvg+
+    48iWtOrlf5eF+YPci4z7wViIcoB5aH3dGlWD687MC/xahFMAybT5zjDinYX3NWiT
+    UhTnK+xwF2rFAg3UAeJW42mcvFS8SVekSnbF7ObLuPTSd7GfZch0ch3rMMgttDe4
+    strnVY7BwnRMMTtsNFKr8swvKHMjZmkItmDfZrLTiwldVSKS/aT+0benql/0t4XJ
+    0stc/PmAf0vzhHaT7TEpywGQ0nKSDFDYDQIDAQABo4IBNDCCATAwgZ8GA1UdIwSB
+    lzCBlIAU4+AR+J6Xu9pmqWARb5HHY329/VOheaR3MHUxEzARBgoJkiaJk/IsZAEZ
+    FgNjb20xFzAVBgoJkiaJk/IsZAEZFgdleGFtcGxlMRowGAYDVQQKDBFFeGFtcGxl
+    IENvbSwgSW5jLjELMAkGA1UECwwCQ0ExHDAaBgNVBAMME3Jvb3QuY2EuZXhhbXBs
+    ZS5jb22CAQIwHQYDVR0OBBYEFLwMCFIfeRVSuFHdgFlAEBwQBrXzMAwGA1UdEwEB
+    /wQCMAAwDgYDVR0PAQH/BAQDAgXgMCAGA1UdJQEB/wQWMBQGCCsGAQUFBwMBBggr
+    BgEFBQcDAjAtBgNVHREEJjAkggZub2RlLTCCBm5vZGUtMYIGbm9kZS0yhwQAAAAA
+    hwR/AAABMA0GCSqGSIb3DQEBCwUAA4IBAQBlw1twXcIDVznCP3u6pAVoMeiQvRRv
+    UArKUJaQ9QsaGDyuHCmmlY5Lwse9UMIADQubr5dJsVn+jwQxGuwAOMSmaqSWTOOk
+    j69Rr/UMuFVl/jlmxH3vaGo+Zot0nR6S6AF8d+p9K+bPE+6YRt1NoGXXMpCAQHXX
+    edH1j5098tK9e+/hYjP15igiZ8oG9c9eVfo8Wt9buGso67xg3W9UMGnPJIFpyCsy
+    Km77msvqYGI+BmGtORh7pI8HItkzVW06/UClpAw5wbZo50S7nRqjpjsADOxCWMmM
+    kJG+Zk5kPfygc2pvI06QWJmoHRtKEFBnvci8+oN05sJtarUrkcJPAiFI
+    -----END CERTIFICATE-----
+    -----BEGIN CERTIFICATE-----
+    MIIEUTCCAzmgAwIBAgIBAjANBgkqhkiG9w0BAQsFADB1MRMwEQYKCZImiZPyLGQB
+    GRYDY29tMRcwFQYKCZImiZPyLGQBGRYHZXhhbXBsZTEaMBgGA1UECgwRRXhhbXBs
+    ZSBDb20sIEluYy4xCzAJBgNVBAsMAkNBMRwwGgYDVQQDDBNyb290LmNhLmV4YW1w
+    bGUuY29tMB4XDTIwMDQxODE0MzU0OFoXDTMwMDQxNjE0MzU0OFoweDETMBEGCgmS
+    JomT8ixkARkWA2NvbTEXMBUGCgmSJomT8ixkARkWB2V4YW1wbGUxGjAYBgNVBAoM
+    EUV4YW1wbGUgQ29tLCBJbmMuMQswCQYDVQQLDAJDQTEfMB0GA1UEAwwWc2lnbmlu
+    Zy5jYS5leGFtcGxlLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEB
+    AKrSZASJlOR37n2++PF3T3pSnznkBVZcCg3r1PP6zENOKNBVJQcZBNLgwQdA7Kq5
+    oKp4nGdJDWlOF2wjWjJEwfKaUBCM8rw9gorSd8SVmwZBYTYLJpi1x1YO6fFSisEW
+    GY2lZFGBJ+SpyZcEWOQ4Ealitbty8KmR4SiEcVcLzSylGdhAwqVFGMWXCOzjSi6I
+    pN64ryncRzA1/goZDhyESyv4p8u7IcLia4v0DWytJpkm+nzgP5j5DhZ5O30cU4F/
+    mD0huyppcYCDmyTFifNp1sXtY4D6OIFxfvVharTP320qJXVZLYNK0nXwjvEA0O1R
+    HgH8r9vQYhw6s4q+Z2Qyx2UCAwEAAaOB6DCB5TASBgNVHRMBAf8ECDAGAQH/AgEA
+    MIGfBgNVHSMEgZcwgZSAFAPQmBKEvR/u0ndw2dOE1Jafl4FmoXmkdzB1MRMwEQYK
+    CZImiZPyLGQBGRYDY29tMRcwFQYKCZImiZPyLGQBGRYHZXhhbXBsZTEaMBgGA1UE
+    CgwRRXhhbXBsZSBDb20sIEluYy4xCzAJBgNVBAsMAkNBMRwwGgYDVQQDDBNyb290
+    LmNhLmV4YW1wbGUuY29tggEBMB0GA1UdDgQWBBTj4BH4npe72mapYBFvkcdjfb39
+    UzAOBgNVHQ8BAf8EBAMCAYYwDQYJKoZIhvcNAQELBQADggEBAKGwkL4UV63U6JPe
+    sSqXVrxw8fhDgnHJsVIsZw1fNmKtHm9eAkhb7O/u6agfJ2jHuSXgFDBFcErccuPq
+    Xp9hWBX1dC/BCdUv/XOz7S4HQXOPXe/U8l5e2a9DjiAyukaPqDgOJ906qJ3fK5B9
+    MJ3eCb/o1R99UgGE/kJm6o/JH28WinYleh4zFdhGKRJWiQbj4uBIzWR8ps7KhM/r
+    2C8Psui8Orf1/PeeZuDJ86j+uWPu+MRB9IdiI4wdApAI3MvMo2lhrJb4jF4oV2Ei
+    4sNChGvIj20HmTY6M7Qw/nzIHt484pWnCRLbIHPL5BfaStOz27L7brsUfl8yGfQz
+    LkkEuK0=
+    -----END CERTIFICATE-----
+  node.key: |-
+    -----BEGIN PRIVATE KEY-----
+    MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCvcFixV3Z8N4ai
+    cZV9Duz1Nux5jSSoLzH4CHDH98YoEZ+26ZVevUWcJXfwDH2C5RvrQZzalYjbeffB
+    l29mz5LcSu1E5pbJgdILAP8fSUWMt8KLZBwu+D7jyJa06uV/l4X5g9yLjPvBWIhy
+    gHlofd0aVYPrzswL/FqEUwDJtPnOMOKdhfc1aJNSFOcr7HAXasUCDdQB4lbjaZy8
+    VLxJV6RKdsXs5su49NJ3sZ9lyHRyHeswyC20N7iy2udVjsHCdEwxO2w0UqvyzC8o
+    cyNmaQi2YN9mstOLCV1VIpL9pP7Rt6eqX/S3hcnSy1z8+YB/S/OEdpPtMSnLAZDS
+    cpIMUNgNAgMBAAECggEAEVrl+JEu6vCGlJOeQVNUf0OHgX9uxLvPz89snL4275LN
+    anJRW6BnU6A57QNx98duC3Kfr4NDGSHH2nJTy7y1X1ktf0ySVm0jGAHpZbEWvL9s
+    SDlx4kxI0w7DqIe42/Y42NXsX4UQXfBB+0BuAjdlQ9bO0z56B/uBrCfBOF2l/U7F
+    dbS5adx2VZAX1HhBM2TOpaUiWPUR7jg1EGIc7BCwyLuVEyQ0uaaBqnAV9L4I8cUL
+    QOqM/gn1S/5RFlpJJJtHZZqC86h3ybiwa2V9Zh8Gcn/e/9IIZWvxN8/MxB8bPBRa
+    cHg66C0iXX5lsAyeYxvGjx6xw/geZQVwnp+vsrSQXwKBgQDvh45R6ziV0T/6bNJl
+    0GCqzYTZzf8a/+Nwkb5m0D82x40El74/a8vO69NgZfyhSoZDf2Or4pyvzTWxmsSE
+    ro01TYv87w4LJXrt2zYz68bYXzGIIGOqi0hr5kqOGkkfDbz8+7w2CbD+57mSvSuf
+    M/6qorFoczSmn9V2C3T8F92AtwKBgQC7gJnaYGP8m3LiE3LsycD9pRneP7r5lDCF
+    WAlGUqF5EiaDa+sGtAcMmq3QI9drhcGCncgs84vpQ23EYej5A2FpvM0I0l77LhS1
+    pXtLFz3S2rq+KB7HuZQnI2WYoaGlgHxtKyr/tFaeBe/Ac7elFmIPs9STAS/7eRl+
+    f7fET2ehWwKBgGfSA5fyMmaNegObY16KATxHNEwLg4U6YGSMZ1C89olR2Qeile17
+    Va1sfgQMcIGgga2D67m20V9JvPosMP2pgr8Vy5VoMFgYeL3cBBRhH6DtMdTk5Q4o
+    rM1H1gzdy8/P7phgrGVnsfXqjn7Ry7SHntxrBCZXuPx3ztgJgz05QuLlAoGBAKiw
+    NTqrd6ke7UeJud5gUNmhvNkfuwapFNISdx2mX5F+C9o2sBayxpjHXFKivD8G8iah
+    7yLJ5fjxagLBF4lYSj6H1mr2YO9X8NfPTlIrUbqugE1t6OtFAY4IoXGlELnGE6tf
+    p+qvAzJeIumg8fp7XbPE1R2AdvumYpJVMy5RRel7AoGAJo/vpmIT8tX60mynsM5E
+    K7PRq8+RN6zx3rW3WTDVm0R4ffTSU+ewew1Gx6DjjUDN7VNmPwyYE8SOqciA8rqL
+    MZ/33Mk/M9daVWtfG40fia/q/ZkjPcHC2TyB9Peh7dDl39pHIT21b3Bz410ci/NR
+    Et7/9KzMTwaLjE1T4GDnWPU=
+    -----END PRIVATE KEY-----
+  root-ca.pem: |-
+    -----BEGIN CERTIFICATE-----
+    MIIDyDCCArCgAwIBAgIBATANBgkqhkiG9w0BAQsFADB1MRMwEQYKCZImiZPyLGQB
+    GRYDY29tMRcwFQYKCZImiZPyLGQBGRYHZXhhbXBsZTEaMBgGA1UECgwRRXhhbXBs
+    ZSBDb20sIEluYy4xCzAJBgNVBAsMAkNBMRwwGgYDVQQDDBNyb290LmNhLmV4YW1w
+    bGUuY29tMB4XDTIwMDQxODE0MzU0N1oXDTMwMDQxNjE0MzU0N1owdTETMBEGCgmS
+    JomT8ixkARkWA2NvbTEXMBUGCgmSJomT8ixkARkWB2V4YW1wbGUxGjAYBgNVBAoM
+    EUV4YW1wbGUgQ29tLCBJbmMuMQswCQYDVQQLDAJDQTEcMBoGA1UEAwwTcm9vdC5j
+    YS5leGFtcGxlLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBALkC
+    FE2nPhskTywtwYX4jG51w8yAE6oXkln33SMq/kNBTl6JOaA/xjD+aoBlQM1KhLgT
+    uryHu3qm2DEDGt7OnFPloL8gKfzTgebQqWw/KqLP73lgr33fPeeggh+yIkcAvfAk
+    vH+u+uGQdQg9jCKWeTtHxq9tg2q6zUeZyqiuE6TJBDsnuFC4sNkUr7Qgd8QRMht4
+    e9+BMci+xQVRbZApgFEqujUwzVEihr8zWuTXELjcTstRNd9Gr3btqzwMU+KN4Tf/
+    7YwiKrZylOw+hCpLd0jr4INp/Migf8AWhtxAqp97016oHOOye0li3ffzJA75tjTs
+    jSTYQsUlKsAIDwExcOMCAwEAAaNjMGEwDwYDVR0TAQH/BAUwAwEB/zAfBgNVHSME
+    GDAWgBQD0JgShL0f7tJ3cNnThNSWn5eBZjAdBgNVHQ4EFgQUA9CYEoS9H+7Sd3DZ
+    04TUlp+XgWYwDgYDVR0PAQH/BAQDAgGGMA0GCSqGSIb3DQEBCwUAA4IBAQBaIvoi
+    TBK+M+nII2RPNF23zGeNo8pJNSVsZiK/QHq7aUW94RdfsKPXINuBRKZ2gz0Z9kgP
+    pi4nZHRLiRF7W5C2hD5ZjtRYS2Z9IOMHo+7zfLU9T9wPla1uHwXX8tV5RHRkvDMH
+    HQSjzu0BNK8G8NZasx6rff/EFldJ/7Du1fr/LZ1RVDeFm6tqWjw7MFIGluJ1GjCZ
+    ZlLTpH/IJaf2poDYDEukLxs3AfrnzZI0nGI74qQSdzBvkUiHWjqjimiktrSwn3xx
+    zrO8Pp3eHZeUo3yIrs+w+BChZ3onXpgb9RajCHy1DyBd0duOSrWTgY5gCQscfZ5P
+    tgwzaTc2fSXqOGXL
+    -----END CERTIFICATE-----
+  admin.pem: |-
+    -----BEGIN CERTIFICATE-----
+    MIIEZjCCA06gAwIBAgIGAXGNt4UNMA0GCSqGSIb3DQEBCwUAMHgxEzARBgoJkiaJ
+    k/IsZAEZFgNjb20xFzAVBgoJkiaJk/IsZAEZFgdleGFtcGxlMRowGAYDVQQKDBFF
+    eGFtcGxlIENvbSwgSW5jLjELMAkGA1UECwwCQ0ExHzAdBgNVBAMMFnNpZ25pbmcu
+    Y2EuZXhhbXBsZS5jb20wHhcNMjAwNDE4MTQzNTUyWhcNMzAwNDE2MTQzNTUyWjBz
+    MRMwEQYKCZImiZPyLGQBGRYDY29tMRcwFQYKCZImiZPyLGQBGRYHZXhhbXBsZTEa
+    MBgGA1UECgwRRXhhbXBsZSBDb20sIEluYy4xDDAKBgNVBAsMA09wczEZMBcGA1UE
+    AwwQa2lyay5leGFtcGxlLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoC
+    ggEBAM1i48QNuK4+KwED2CUPHxMOHoMrUAfXTsy8uXwl90+jbfKUzJqTnWOQtmjK
+    rxTGvzQu95uP3dPHJq3Vyx4Dy39SytpCmlRBJf5yu3Dicy6LIG7nMTCHxTYvSm++
+    HMWVgvpM+Yxq/+jVY3jLFd9zg0BGEmEMG03/sPLaiWVWjEPRn+nvh+QKipGtvRR3
+    vh8ol3SwiCi4R2hELqtJZKhogApuQNi0sxFUcTSe+/OVUrbpY43ZZki0UyGCfq5O
+    OmhEshxFGJske4oFZamwT05Ns5B3+zmg+hrWV7K3B4uopUPRiAKhSglHDI6lH9MO
+    SCBPscGXYNeq86HgW/ZpbRY+wpECAwEAAaOB+jCB9zCBnwYDVR0jBIGXMIGUgBTj
+    4BH4npe72mapYBFvkcdjfb39U6F5pHcwdTETMBEGCgmSJomT8ixkARkWA2NvbTEX
+    MBUGCgmSJomT8ixkARkWB2V4YW1wbGUxGjAYBgNVBAoMEUV4YW1wbGUgQ29tLCBJ
+    bmMuMQswCQYDVQQLDAJDQTEcMBoGA1UEAwwTcm9vdC5jYS5leGFtcGxlLmNvbYIB
+    AjAdBgNVHQ4EFgQU30coFy5IlzMAs5L2D8H4kFOjfdowDAYDVR0TAQH/BAIwADAO
+    BgNVHQ8BAf8EBAMCBeAwFgYDVR0lAQH/BAwwCgYIKwYBBQUHAwIwDQYJKoZIhvcN
+    AQELBQADggEBAEeWi2BTbGGuTRxDbDZiZYCR6gXW8+LvOyN/MnFm2+LTPBb4vtmf
+    kazYybjSS+Yj+BvSi4XfDnpPIEX9c7pgjoXhH+omL9s/j9yRdgn5An/hoDOyxYTX
+    ANjCxT8NZx9BTsCNTs+8FmHxGOYXp3oWx8hglJgcUr3XAW0ZnieIvFQzCCASWCi8
+    SLBf7pocV2OYSuRXn4wc6l848y9fy6doWWXLSXmqNM21gVggVK/BWbZ9T5I0ABYx
+    OgFWbFF1QBALQF00matm4K9tCg8yUmiHi09Wh6T/bXD623g6dHF/TlGknGccdfPp
+    1OMPUBXdk2NnEIbfk97mhfZ4ITl9XryUvjM=
+    -----END CERTIFICATE-----
+    -----BEGIN CERTIFICATE-----
+    MIIEUTCCAzmgAwIBAgIBAjANBgkqhkiG9w0BAQsFADB1MRMwEQYKCZImiZPyLGQB
+    GRYDY29tMRcwFQYKCZImiZPyLGQBGRYHZXhhbXBsZTEaMBgGA1UECgwRRXhhbXBs
+    ZSBDb20sIEluYy4xCzAJBgNVBAsMAkNBMRwwGgYDVQQDDBNyb290LmNhLmV4YW1w
+    bGUuY29tMB4XDTIwMDQxODE0MzU0OFoXDTMwMDQxNjE0MzU0OFoweDETMBEGCgmS
+    JomT8ixkARkWA2NvbTEXMBUGCgmSJomT8ixkARkWB2V4YW1wbGUxGjAYBgNVBAoM
+    EUV4YW1wbGUgQ29tLCBJbmMuMQswCQYDVQQLDAJDQTEfMB0GA1UEAwwWc2lnbmlu
+    Zy5jYS5leGFtcGxlLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEB
+    AKrSZASJlOR37n2++PF3T3pSnznkBVZcCg3r1PP6zENOKNBVJQcZBNLgwQdA7Kq5
+    oKp4nGdJDWlOF2wjWjJEwfKaUBCM8rw9gorSd8SVmwZBYTYLJpi1x1YO6fFSisEW
+    GY2lZFGBJ+SpyZcEWOQ4Ealitbty8KmR4SiEcVcLzSylGdhAwqVFGMWXCOzjSi6I
+    pN64ryncRzA1/goZDhyESyv4p8u7IcLia4v0DWytJpkm+nzgP5j5DhZ5O30cU4F/
+    mD0huyppcYCDmyTFifNp1sXtY4D6OIFxfvVharTP320qJXVZLYNK0nXwjvEA0O1R
+    HgH8r9vQYhw6s4q+Z2Qyx2UCAwEAAaOB6DCB5TASBgNVHRMBAf8ECDAGAQH/AgEA
+    MIGfBgNVHSMEgZcwgZSAFAPQmBKEvR/u0ndw2dOE1Jafl4FmoXmkdzB1MRMwEQYK
+    CZImiZPyLGQBGRYDY29tMRcwFQYKCZImiZPyLGQBGRYHZXhhbXBsZTEaMBgGA1UE
+    CgwRRXhhbXBsZSBDb20sIEluYy4xCzAJBgNVBAsMAkNBMRwwGgYDVQQDDBNyb290
+    LmNhLmV4YW1wbGUuY29tggEBMB0GA1UdDgQWBBTj4BH4npe72mapYBFvkcdjfb39
+    UzAOBgNVHQ8BAf8EBAMCAYYwDQYJKoZIhvcNAQELBQADggEBAKGwkL4UV63U6JPe
+    sSqXVrxw8fhDgnHJsVIsZw1fNmKtHm9eAkhb7O/u6agfJ2jHuSXgFDBFcErccuPq
+    Xp9hWBX1dC/BCdUv/XOz7S4HQXOPXe/U8l5e2a9DjiAyukaPqDgOJ906qJ3fK5B9
+    MJ3eCb/o1R99UgGE/kJm6o/JH28WinYleh4zFdhGKRJWiQbj4uBIzWR8ps7KhM/r
+    2C8Psui8Orf1/PeeZuDJ86j+uWPu+MRB9IdiI4wdApAI3MvMo2lhrJb4jF4oV2Ei
+    4sNChGvIj20HmTY6M7Qw/nzIHt484pWnCRLbIHPL5BfaStOz27L7brsUfl8yGfQz
+    LkkEuK0=
+    -----END CERTIFICATE-----
+  admin.key: |-
+    -----BEGIN PRIVATE KEY-----
+    MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDNYuPEDbiuPisB
+    A9glDx8TDh6DK1AH107MvLl8JfdPo23ylMyak51jkLZoyq8Uxr80Lvebj93Txyat
+    1cseA8t/UsraQppUQSX+crtw4nMuiyBu5zEwh8U2L0pvvhzFlYL6TPmMav/o1WN4
+    yxXfc4NARhJhDBtN/7Dy2ollVoxD0Z/p74fkCoqRrb0Ud74fKJd0sIgouEdoRC6r
+    SWSoaIAKbkDYtLMRVHE0nvvzlVK26WON2WZItFMhgn6uTjpoRLIcRRibJHuKBWWp
+    sE9OTbOQd/s5oPoa1leytweLqKVD0YgCoUoJRwyOpR/TDkggT7HBl2DXqvOh4Fv2
+    aW0WPsKRAgMBAAECggEAFe3OY8sTQjILurquWUaZYBoh0ooirAj7tjXFmCZ1lrXc
+    XLTbzk/0fgJKzOWBzAtsXtCk9KG9DYo17FmSAPe8F9wUdzlP668JCiHgjCz2ygFm
+    H8aPefRab26dLqZzFqWKq9mMIMdL4OWSY/31rTtSyDSzFv7eliAMGeHmHuvJY3Qi
+    XUA3XwoXARHm0m/pN7Y85MgnL7gKarBay3TUNeF62o1o3LWkD12oUCQmJR0BhXyV
+    ZP9GNErjRRI9Lp2bkFT/zpA6DiJgcyZGAV0ocSVDrxWmu+6vJBUE27LNYJcpEyKq
+    /RpS3byyqV9RcxOvOxO8HQcTjxXguk4R2gPRrGQ4AQKBgQD/skctsuVk2DxwMDvu
+    HhTkGUID8S8IUz+clmQG728jn+PiVmUrJ61JPqnhWWctIWxGxdOQejVuHaWRftSk
+    Bf2QIdop3ovv1uqEbYQvx27KG1JyCNEzR8KjbUVty0XedMwV4igKEvcLyluw2cs/
+    NCtxmZbrawNl7ntNYhNJ3WxqmwKBgQDNoVG+gwr5m9k07YxcmnZ1fZap+kvNa9fh
+    2DoPrBU8j7OcMAYjC+58I4zfuhCiwtOLKZurVazcoFgpQHIwzP0tKjiqgQTj4z/Q
+    LNZNDWTIto+qG7w/5OBBUXTH3wyRv8MsSBWLLfAu+9L9IUTm0kbqFF92LLMSknaQ
+    PCEG6+xUQwKBgQDY+zKHxy3+27i+A1B4CrLztbNdoQemau6qNL0BXaHUe1Rot6P2
+    cR8N7s0+XB3AIIK/tBSKoApDPYlI5HYSErtP2kpGCYJ6rsgoRL9NxFFx1Kmr92t/
+    tr+m641lVIAf/MFLOLV9hwZ5zOjuNIPTSLQtHIcDk7Y4g53C1x1DK1FbTQKBgA79
+    1eHX1/L+w8UyFGuj70L9lwBpeSFO3XxfsUv3Nc0mhOe8MJZZhleSl/CvtgrHvXiF
+    3g2Nv36OSh8nzat1Jngmfd8gbOTYaoyY2D7h3RktBihWwVC/NQJOF/+CaX4uxuHx
+    l3CANuSWA3nk9QsHBZiHR7Zr59pQx0gYuiexB5fVAoGBALWkINRezCbLX0XfQx0Y
+    aT9/aZq3FGsLsJHsClwemAbsdDWTK+1LBSJWiGQjy11qNewsJoqHE4c+FiN4JBad
+    oUlgGCAL3WvKZj2IIbqx70py2MHGvh4mviX3Ep98InGyBGTWsPoVG8CTuDhdRH8G
+    D7p5StcJNcKGnWlm0BQ5ZpGq
+    -----END PRIVATE KEY-----
+  node_http.key: |-
+    -----BEGIN PRIVATE KEY-----
+    MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDTZpSCRu0Suu8k
+    jeAvzoyCudmuFn+qCaDp5+zYRdxcL7ElP/7+ieCUkEwOsTP1WMCCXmxBhDPAqeWC
+    07n4NovHyld4sWlIPyTnacZISV3p61biwjJLdVw3y85z2AW9a1nJdYdUigsytoNL
+    bvMb+sr8Hp3NsG0pKlraDmIic0C+69yKj7VvqR7m0DZ4KM2GNFXXmEOxLEoaVjwf
+    3+PjZO7Sz3TTM3BCcGn5WYmTw8RIViS7KMGfLgjt5lQKbDYiKjERS5Vsv/O34ZsZ
+    t3TYKtEEu6PxTDCID8QQfT8+1WsRAJZvo9JCqgbZNmhYzpRWDubT/HC/m0WiFEQh
+    QiStWaanAgMBAAECggEAVzeetMMLY2thZ6zrHf4zBWok74iTwjT3wRkxI6dq+1On
+    28zz6NM8pz6DSpp8a9BimEbZlgwzh9zwdlHhC5GBiPunrAFSBP8cPCdtKXyvdOdl
+    8Oca9fvlAJYixrOM5rHoGNBW9Z+AcDtRnukW/uexIGSHSYns94tkcUt23Gy9fSa0
+    4rADfKyYLccq338nAFriQ19EhDpoNprX7C/+H0joUTZnvEnfK5etGKIov8N+WynZ
+    JPfqXol2N+n/hxUUcP8jWiWqycJWAPxTuagi3XLebJhccreM2fPjmmg8/KPHCCxu
+    ckQnbjrTAZIqJzsRsH3Z3EP8cmsd1D2FSPpWDaKDLQKBgQD563oiaQWzCxEJhuCl
+    ykrDSxcqCOtT2spsw7UqeZQNx8UUeRT2GknoAlPsdz0Go4KA/EioktrBQR+o8teg
+    Pkjy3286LpyIKWbhLT1MeYuwtEF2MvxCZaVxDKa4FXatypORoQwuGtMSMeZjs3e3
+    QZzh7KH8ciI1VGXLEwmHQTiIfQKBgQDYizPVE9ht4FN09/dMddOl8kGjLMrBNV9L
+    yIAVq+SHZi6T458cC6JijBfGQCNJudMjv+z+qU0iAfnyjQoGr6wzNFiO2UF/V3LH
+    14HFDe7ozJhVc42VxkQT7VHlkp5OReCG6gPxj+xq1+aPyJdbAhdg+8SLto6zTjj+
+    cfmCswP48wKBgFxF8ekkh4MskdTHpMfxoZrrbZkKhACI5nYz5/7PtrdDy+McNX4M
+    BL+RpHTJLZH26uc+voDm/7ecmNjjGHPEq2Bo2INN1GN9jcuTzW8f7VCHrSe7+WF2
+    cBgGSMPswM233rZFFN8s7kNogxzKlWfm5MqReNlhNnokOBU7aSg0D3BtAoGBAJLt
+    wPmvQYcsUvRm3BGxUS6kNg01800tnb+aB+6sd5+3oZsPM4KgEkqzq94E3uzDfZQg
+    Qfp5fbC5jpMZR9hJkpobxosGtv5ko6kdfRvr3FNxn1s70LHzmXW77XnMBkYt+68P
+    UiWx9kR4wiSFgs1pmdtgeXgjIqhfRyS+yQH53ZQpAoGBAPDE+t5VMoFWGQqJuHlR
+    1PXjFm/n3EkYjc2n3QFnnZC6RQPi+cbHUSBC2AthwylYSBfZ42yGIzVaK24FAfGt
+    OHGsFEFX4fUgpYBpmdLeDVy749VrJd5Diglc44HvmWgvvrtToz/cez4SkMZzUg6n
+    pLHOW6S4Gj3UK8pdGyGjocif
+    -----END PRIVATE KEY-----
+  node_http.pem: |-
+    -----BEGIN CERTIFICATE-----
+    MIIERjCCAy6gAwIBAgIGAXGNt4ULMA0GCSqGSIb3DQEBCwUAMHgxEzARBgoJkiaJ
+    k/IsZAEZFgNjb20xFzAVBgoJkiaJk/IsZAEZFgdleGFtcGxlMRowGAYDVQQKDBFF
+    eGFtcGxlIENvbSwgSW5jLjELMAkGA1UECwwCQ0ExHzAdBgNVBAMMFnNpZ25pbmcu
+    Y2EuZXhhbXBsZS5jb20wHhcNMjAwNDE4MTQzNTUwWhcNMzAwNDE2MTQzNTUwWjAY
+    MRYwFAYDVQQDDA0qLmV4YW1wbGUuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A
+    MIIBCgKCAQEA02aUgkbtErrvJI3gL86MgrnZrhZ/qgmg6efs2EXcXC+xJT/+/ong
+    lJBMDrEz9VjAgl5sQYQzwKnlgtO5+DaLx8pXeLFpSD8k52nGSEld6etW4sIyS3Vc
+    N8vOc9gFvWtZyXWHVIoLMraDS27zG/rK/B6dzbBtKSpa2g5iInNAvuvcio+1b6ke
+    5tA2eCjNhjRV15hDsSxKGlY8H9/j42Tu0s900zNwQnBp+VmJk8PESFYkuyjBny4I
+    7eZUCmw2IioxEUuVbL/zt+GbGbd02CrRBLuj8UwwiA/EEH0/PtVrEQCWb6PSQqoG
+    2TZoWM6UVg7m0/xwv5tFohREIUIkrVmmpwIDAQABo4IBNDCCATAwgZ8GA1UdIwSB
+    lzCBlIAU4+AR+J6Xu9pmqWARb5HHY329/VOheaR3MHUxEzARBgoJkiaJk/IsZAEZ
+    FgNjb20xFzAVBgoJkiaJk/IsZAEZFgdleGFtcGxlMRowGAYDVQQKDBFFeGFtcGxl
+    IENvbSwgSW5jLjELMAkGA1UECwwCQ0ExHDAaBgNVBAMME3Jvb3QuY2EuZXhhbXBs
+    ZS5jb22CAQIwHQYDVR0OBBYEFERepzq2a3TGB6q0zJzfG/YbCP3wMAwGA1UdEwEB
+    /wQCMAAwDgYDVR0PAQH/BAQDAgXgMCAGA1UdJQEB/wQWMBQGCCsGAQUFBwMBBggr
+    BgEFBQcDAjAtBgNVHREEJjAkggZub2RlLTCCBm5vZGUtMYIGbm9kZS0yhwQAAAAA
+    hwR/AAABMA0GCSqGSIb3DQEBCwUAA4IBAQA6wtg7+U+mwX35NmWRI045TeN2KZgr
+    M9XNztrfJWyvYDfXmAiXhtWHnqK/+A1Vn1p8K9Mf8x1G15I2PRltTlbZqDDlUNfw
+    32UyawGoqQst1htWZVugP4AVcreE5/ztFg53gUGbj5kY5mBHtzxVHGXzRV7Kijxe
+    KO90717ZS061hJeOxYSQZN2cYXZPNqucvEUfLDs2UaFxT4hrRbATGfX5PFduq46j
+    bIO0mkxBh4DybU9IomXu8NgyalI3GCPERIe0KaO7R4zmhhjvPGbkrQs5xhlI5Nlf
+    wZTrGTZvUnmkaRTxi38gcg/96UJ7q95X6M+Ta6psHzo6at1eBxGZNwTW
+    -----END CERTIFICATE-----
+    -----BEGIN CERTIFICATE-----
+    MIIEUTCCAzmgAwIBAgIBAjANBgkqhkiG9w0BAQsFADB1MRMwEQYKCZImiZPyLGQB
+    GRYDY29tMRcwFQYKCZImiZPyLGQBGRYHZXhhbXBsZTEaMBgGA1UECgwRRXhhbXBs
+    ZSBDb20sIEluYy4xCzAJBgNVBAsMAkNBMRwwGgYDVQQDDBNyb290LmNhLmV4YW1w
+    bGUuY29tMB4XDTIwMDQxODE0MzU0OFoXDTMwMDQxNjE0MzU0OFoweDETMBEGCgmS
+    JomT8ixkARkWA2NvbTEXMBUGCgmSJomT8ixkARkWB2V4YW1wbGUxGjAYBgNVBAoM
+    EUV4YW1wbGUgQ29tLCBJbmMuMQswCQYDVQQLDAJDQTEfMB0GA1UEAwwWc2lnbmlu
+    Zy5jYS5leGFtcGxlLmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEB
+    AKrSZASJlOR37n2++PF3T3pSnznkBVZcCg3r1PP6zENOKNBVJQcZBNLgwQdA7Kq5
+    oKp4nGdJDWlOF2wjWjJEwfKaUBCM8rw9gorSd8SVmwZBYTYLJpi1x1YO6fFSisEW
+    GY2lZFGBJ+SpyZcEWOQ4Ealitbty8KmR4SiEcVcLzSylGdhAwqVFGMWXCOzjSi6I
+    pN64ryncRzA1/goZDhyESyv4p8u7IcLia4v0DWytJpkm+nzgP5j5DhZ5O30cU4F/
+    mD0huyppcYCDmyTFifNp1sXtY4D6OIFxfvVharTP320qJXVZLYNK0nXwjvEA0O1R
+    HgH8r9vQYhw6s4q+Z2Qyx2UCAwEAAaOB6DCB5TASBgNVHRMBAf8ECDAGAQH/AgEA
+    MIGfBgNVHSMEgZcwgZSAFAPQmBKEvR/u0ndw2dOE1Jafl4FmoXmkdzB1MRMwEQYK
+    CZImiZPyLGQBGRYDY29tMRcwFQYKCZImiZPyLGQBGRYHZXhhbXBsZTEaMBgGA1UE
+    CgwRRXhhbXBsZSBDb20sIEluYy4xCzAJBgNVBAsMAkNBMRwwGgYDVQQDDBNyb290
+    LmNhLmV4YW1wbGUuY29tggEBMB0GA1UdDgQWBBTj4BH4npe72mapYBFvkcdjfb39
+    UzAOBgNVHQ8BAf8EBAMCAYYwDQYJKoZIhvcNAQELBQADggEBAKGwkL4UV63U6JPe
+    sSqXVrxw8fhDgnHJsVIsZw1fNmKtHm9eAkhb7O/u6agfJ2jHuSXgFDBFcErccuPq
+    Xp9hWBX1dC/BCdUv/XOz7S4HQXOPXe/U8l5e2a9DjiAyukaPqDgOJ906qJ3fK5B9
+    MJ3eCb/o1R99UgGE/kJm6o/JH28WinYleh4zFdhGKRJWiQbj4uBIzWR8ps7KhM/r
+    2C8Psui8Orf1/PeeZuDJ86j+uWPu+MRB9IdiI4wdApAI3MvMo2lhrJb4jF4oV2Ei
+    4sNChGvIj20HmTY6M7Qw/nzIHt484pWnCRLbIHPL5BfaStOz27L7brsUfl8yGfQz
+    LkkEuK0=
+    -----END CERTIFICATE-----
+  keycloak-ca.pem: |-
+    -----BEGIN CERTIFICATE-----
+    MIIFKzCCAxMCFEMeGuX1NP2jx7v8Mx/QutUfklgBMA0GCSqGSIb3DQEBCwUAMFIx
+    EDAOBgNVBAMMB3Jvb3QtY2ExCzAJBgNVBAYTAlVTMQ0wCwYDVQQKDARQU1NXMQ0w
+    CwYDVQQLDARIUEJQMRMwEQYDVQQIDApDYWxpZm9ybmlhMB4XDTIwMDUxOTIzMjUx
+    N1oXDTIyMDUxOTIzMjUxN1owUjEQMA4GA1UEAwwHcm9vdC1jYTELMAkGA1UEBhMC
+    VVMxDTALBgNVBAoMBFBTU1cxDTALBgNVBAsMBEhQQlAxEzARBgNVBAgMCkNhbGlm
+    b3JuaWEwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQCvEAxYcl6QheYd
+    9exW75u5ZUF1JE8ApFxlQ09Gv01RpxXHqLDNt/pPnTch5ht4HdkR9Sl7P9nb3Dec
+    oQkzd7CkEFWmMzYd/Op+VbuqmYKNyqzMl/FdVBB3tNz1no3GZ/E8UN6S4n5tbA40
+    X0oU+B7dg5YLbMgfid9VOhlYpxx2xG0j1BDCG1Z+OGzaTnfBk04OU6NPoYIxUQ1k
+    Klpzx0+19kPsxf0SgUekc+xoR1IDslg2Gq0R75WEteXe3L64TfdPKQaaYYxsJ9M6
+    Y8BULbexW5qd43LcpA2nLCCDnFOKFsuOiLULKAxqxu+aErdvYIGYPI0+hF7bsos6
+    0jjGURLZFS9Z0hXP7Qq1+nKebvAvd/DHJejH3w0NGIbPG70W+UAmi46ljj4oBFOK
+    pnqH7q7IjRgQNcd3hgYQLAynkko8C6haS6kG39Jlnh3slRZ/FJjO09OEtILmQF1D
+    eQoM1tu/5rr5hF6h8KFiSwQPiS8XbuAxF15KbQUpfSkfauLVMPTROJximrS0UJAU
+    CI8P4NJ/QqsPY9DfnuUaDbk2DOqLQ8EcFYdd4KZ61DeDCBD7jNlqdwc4AUfnnqcO
+    gkg3V5+hv1kxF/2wLmvBnvCOVmo7KRzgiq2HnU8TkXu7xdBL7+ywQX/Mu0pGvajy
+    vjVN0qEy2dHlQ0H279DrH74KMG6KsQIDAQABMA0GCSqGSIb3DQEBCwUAA4ICAQBk
+    d83BmXoznvVzQTv2UdVazoFcF/4S0o1O5bQYnoHIyZV7AI7dZE5CmTd6x9k6uCf8
+    fJbOtD+TiWx7vJY7gV4TsIpA6jMJ09IlVp7Mra6yDu6f07ubwSdHitmvJnt+eqF7
+    TVoxJ8oH//b1nlFJr64x9i6NoL185O0bfMTG46ff/Xl4Ldwto/qiRtS6EvP+eedO
+    I8MrpD+pM+QnW2qpYI2ogFy+KhxJD+fb3RKuFjPBQ7KKO5GwTTnv9iG4IHqHeI3B
+    TfcyTrKutmqO62m6dg1svrF0ZUW8wmAo5aD7Ulf3nxqzo1v3mLqYM6y/t1mTwTls
+    J6rbAnttbuP3gF2WyOwGbE9rBZrcS7DVoTzXEDGZuGz5DnsOfpJGgkMN7OvoLmx1
+    xhszZlX/M4Y7Z2mZ0AQmqg5EgtgEecR6JvFQ0kWKN5juBDdzr3hNYaCW1va1Jnqa
+    EJOJZimxi3JEnWyRRaNwwaU/6VA3Ob2NVY8tL/zH7lVXf8jHcbILbcdyVjLKwkdc
+    c7NaRQwRhUoR7CQknubiE5VLJQzcWMnFH6FXPFvlFm8XBJQVEputOtWCRGVFUqfv
+    n5CSiw+bp6zQmmL2k7jyPXNbtrTs42NMXROO2NAM03RwmGox8MsCjkUziGdz8aTK
+    vBvKtXoWQzDbkrWgs+dS+WWq3V5G2jiYojR3gBn0pw==
+    -----END CERTIFICATE-----

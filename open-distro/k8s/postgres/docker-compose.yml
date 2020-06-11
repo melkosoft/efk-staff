@@ -1,0 +1,32 @@
+version: '3.2'
+services:
+  postgres:
+    image:  postgres:10.4
+    container_name: postgres
+    hostname: postgres
+    environment:
+      - POSTGRES_DB=keycloak
+      - POSTGRES_USER=keycloak
+      - POSTGRES_PASSOWRD=keycloak
+    volumes:
+      - "pgdata:/var/lib/postgresql/data"
+    ports:
+      - 5432:5432
+    networks:
+      - net1
+  backup:
+    image: pgutils
+    container_name: pgutils
+    command: ["sleep", "6000"]
+    environment:
+      - "PGHOST=postgres"
+      - "PGPORT=5432"
+      - "PGDATABASE=keycloak"
+      - "PGUSER=keycloak"
+      - "PGPASSWORD=keycloak"
+    networks:
+      - net1
+volumes:
+  pgdata:
+networks:
+  net1:

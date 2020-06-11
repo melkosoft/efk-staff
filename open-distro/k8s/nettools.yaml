@@ -1,0 +1,32 @@
+#---
+#apiVersion: v1
+#kind: ServiceAccount
+#metadata:
+#  labels:
+#    app: nettools
+#  name: nettools
+#  namespace: logging
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: utils
+  name: utils
+spec:
+  serviceName: utils
+  replicas: 1
+  selector:
+    matchLabels:
+      app: utils
+  template:
+    metadata:
+      labels:
+        app: utils
+    spec:
+      containers:
+      - image: mmamaenko/utils:0.1.0
+        imagePullPolicy: "IfNotPresent"
+        name: utils
+        command: [ "/bin/bash", "-c", "--" ]
+        args: [ "while true; do sleep 30; done;" ]

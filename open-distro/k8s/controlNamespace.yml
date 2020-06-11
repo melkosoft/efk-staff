@@ -3,14 +3,13 @@ kind: Logging
 metadata:
   name: logging-cn
 spec:
-  fluentd: 
-    logLevel: debug
+  fluentd:
+    scaling:
+      replicas: 3
   fluentbit:
     image:
       pullPolicy: IfNotPresent
       repository: fluent/fluent-bit
-      tag: 1.4.2-debug
+      tag: 1.4.2
   controlNamespace: logging
-  watchNamespaces:
-    - demo-1
-    - demo-2
+
