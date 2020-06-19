@@ -1,0 +1,159 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    component: elasticsearch
+  name: node
+  namespace: logging
+spec:
+  serviceName: node
+  replicas: 3 # Number of Elasticsearch master nodes to deploy
+  selector:
+    matchLabels:
+      component: elasticsearch
+  template:
+    metadata:
+      labels:
+        component: elasticsearch
+    spec:
+      securityContext:
+        fsGroup: 1000
+      # Anti-affinity to disallow deploying client and master nodes on the same worker node
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - topologyKey: "kubernetes.io/hostname"
+            labelSelector:
+              matchLabels:
+                component: elasticsearch
+      initContainers:
+      - name: init-sysctl
+        image: busybox:1.27.2
+        command:
+        - sysctl
+        - -w
+        - vm.max_map_count=2621440
+        securityContext:
+          privileged: true
+      containers:
+      - name: node
+        env:
+        - name: CLUSTER_NAME
+          value: logs
+        - name: NETWORK_HOST
+          value: "0.0.0.0"
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: DISCOVERY_SERVICE
+          value: elasticsearch-discovery
+        - name: KUBERNETES_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: ES_JAVA_OPTS
+          value: -Xms6g -Xmx6g
+        livenessProbe:
+          tcpSocket:
+            port: transport
+          initialDelaySeconds: 60
+          periodSeconds: 10
+        # Official Image from Open Distro Team
+        image: amazon/opendistro-for-elasticsearch:1.6.0
+        resources:
+          requests:
+            cpu: "100m"
+          limits:
+            cpu: "2"
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9300
+          name: transport
+        - containerPort: 9200
+          name: http
+        - containerPort: 9600
+          name: metrics
+        volumeMounts:
+        - name: es-persistent-storage
+          mountPath: /usr/share/elasticsearch/data
+        - mountPath: /etc/localtime
+          name: host-time
+        - mountPath: /usr/share/elasticsearch/config/elasticsearch.yml
+          name: config
+          subPath: elasticsearch.yml
+        - mountPath: /usr/share/elasticsearch/config/log4j2.properties
+          name: config
+          subPath: log4j2.properties
+        - mountPath: /usr/share/elasticsearch/plugins/opendistro_security/securityconfig/config.yml
+          name: config
+          subPath: config.yml
+        - mountPath: /usr/share/elasticsearch/config/node.pem
+          name: certs
+          subPath: node.pem
+          readOnly: true
+        - mountPath: /usr/share/elasticsearch/config/node.key
+          name: certs
+          subPath: node.key
+          readOnly: true
+        - mountPath: /usr/share/elasticsearch/config/node_http.pem
+          name: certs
+          subPath: node_http.pem
+          readOnly: true
+        - mountPath: /usr/share/elasticsearch/config/node_http.key
+          name: certs
+          subPath: node_http.key
+          readOnly: true
+        - mountPath: /usr/share/elasticsearch/config/root-ca.pem
+          name: certs
+          subPath: root-ca.pem
+          readOnly: true
+        - mountPath: /usr/share/elasticsearch/config/admin.pem
+          name: certs
+          subPath: admin.pem
+          readOnly: true
+        - mountPath: /usr/share/elasticsearch/config/admin.key
+          name: certs
+          subPath: admin.key
+          readOnly: true
+        - mountPath: /usr/share/elasticsearch/config/admin-root-ca.pem
+          name: certs
+          subPath: admin-root-ca.pem
+          readOnly: true
+        - mountPath: /usr/share/elasticsearch/config/ca/keycloak-ca.pem
+          name: certs
+          subPath: keycloak-ca.pem
+          readOnly: true
+        - mountPath: /usr/share/elasticsearch/plugins/opendistro_security/securityconfig/internal_users.yml
+          name: config
+          subPath: internal_users.yml
+        - mountPath: /usr/share/elasticsearch/plugins/opendistro_security/securityconfig/roles_mapping.yml
+          name: config
+          subPath: roles_mapping.yml
+      volumes:
+      - name: host-time
+        hostPath:
+          path: /etc/localtime
+          type: ""
+      - name: config
+        configMap:
+          name: elasticsearch
+      - name: certs
+        secret:
+          secretName: elasticsearch-tls-data
+  updateStrategy:
+    rollingUpdate:
+      partition: 0
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - metadata:
+      annotations:
+        volume.beta.kubernetes.io/storage-class: es-gp2-storage
+      name: es-persistent-storage
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 300Gi

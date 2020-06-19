@@ -1,0 +1,90 @@
+version: '2.1'
+services:
+  node-1:
+    image: blacktop/elasticsearch:7.4
+    container_name: node-1
+    healthcheck:
+      test: ["CMD", "wget", "http://localhost:9200", "-O-"]
+      interval: 10s
+      timeout: 1s
+      retries: 120
+    environment:
+      - node.name=node-1
+      - discovery.type=zen
+      - discovery.seed_hosts=node-2
+      - cluster.initial_master_nodes=node-1,node-2
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - node.store.allow_mmap=false
+      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - 9200:9200
+  node-2:
+    image: blacktop/elasticsearch:7.3
+    container_name: node-2
+    healthcheck:
+      test: ["CMD", "wget", "http://localhost:9200", "-O-"]
+      interval: 10s
+      timeout: 1s
+      retries: 120
+    environment:
+      - node.name=node-2
+      - discovery.type=zen
+      - discovery.seed_hosts=node-1
+      - cluster.initial_master_nodes=node-1,node-2
+      - cluster.name=docker-cluster
+      - bootstrap.memory_lock=true
+      - node.store.allow_mmap=false
+      - "ES_JAVA_OPTS=-Xms256m -Xmx256m"
+    mem_limit: 1g
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+  web:
+    image: merged
+    build: .
+    container_name: server
+    restart: always
+    volumes:
+      - ./server/tests/cluster1.json:/app/comrade/clusters/cluster1.json
+    ports:
+      - "8000:8000"
+    depends_on:
+      node-1:
+        condition: service_healthy
+      node-2:
+        condition: service_healthy
+  e2e:
+    image: cypress/included:3.4.1
+    command: --record
+    container_name: cypress
+    depends_on:
+      - web
+    environment:
+      - CYPRESS_baseUrl=http://web:8000
+      - DEBUG=icypress:*
+      - COMMIT_INFO_BRANCH=${CIRCLE_BRANCH}
+      - COMMIT_INFO_AUTHOR=${CIRCLE_USERNAME}
+      - COMMIT_INFO_SHA=${CIRCLE_SHA1}
+      - COMMIT_INFO_REMOTE=${CIRCLE_REPOSITORY_URL}
+      - CIRCLECI
+      - CIRCLE_JOB
+      - CIRCLE_BUILD_NUM
+      - CIRCLE_BUILD_URL
+      - CIRCLE_PR_NUMBER
+      - CIRCLE_PR_REPONAME
+      - CIRCLE_PR_USERNAME
+      - CIRCLE_COMPARE_URL
+      - CIRCLE_WORKFLOW_ID
+      - CIRCLE_PULL_REQUEST
+      - CIRCLE_REPOSITORY_URL
+      - CI_PULL_REQUEST
+      - CYPRESS_RECORD_KEY
+    working_dir: /e2e/
+    volumes:
+      - ./e2e/:/e2e/

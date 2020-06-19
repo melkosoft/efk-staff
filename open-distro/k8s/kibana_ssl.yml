@@ -14,7 +14,6 @@ data:
     # Default Kibana configuration from kibana-docker.
     server.name: kbna-dev.hpbp.io
     server.host: "0"
-    #kibana.index: kindex
     logging.verbose: true
 
     # Replace with Elasticsearch DNS name picked during Service deployment
@@ -81,16 +80,13 @@ spec:
           value: /usr/share/kibana/config/root-ca.pem
         - name: CLUSTER_NAME
           value: logs
-        # 32-character random string to be used as cookie password by security plugin
-#        - name: COOKIE_PASS
-#          value: "c5e7d83df5bd4f41bd462288430d064c"
         resources:
           limits:
             cpu: 1
             memory: 2Gi
           requests:
             cpu: 1
-            memory: 1Gi
+            memory: 2Gi
 #        readinessProbe:
 #          tcpSocket:
 #            port: http

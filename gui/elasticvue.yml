@@ -1,0 +1,45 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elasticvue
+  namespace: logging
+  labels:
+    app: elasticvue
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elasticvue
+  template:
+    metadata:
+      labels:
+        app: elasticvue
+    spec:
+      containers:
+      - name: elasticvue
+        image: cars10/elasticvue
+        ports:
+        - containerPort: 8080
+          name: http
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: elasticvue
+  namespace: logging
+  labels:
+    app: elasticvue
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Cluster
+  loadBalancerSourceRanges:
+    - 15.0.0.0/9
+    - 192.56.0.0/16
+    - 76.126.85.105/32
+  selector:
+    app: elasticvue
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080

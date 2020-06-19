@@ -301,7 +301,7 @@ metadata:
   namespace: logging
 spec:
   serviceName: node
-  replicas: 1 # Number of Elasticsearch master nodes to deploy
+  replicas: 3 # Number of Elasticsearch master nodes to deploy
   selector:
     matchLabels:
       component: elasticsearch
@@ -347,7 +347,7 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         - name: ES_JAVA_OPTS
-          value: -Xms1g -Xmx1g
+          value: -Xms6g -Xmx6g
         livenessProbe:
           tcpSocket:
             port: transport
@@ -357,11 +357,9 @@ spec:
         image: amazon/opendistro-for-elasticsearch:1.6.0
         resources:
           requests:
-            memory: 2Gi
             cpu: "100m"
           limits:
-            memory: 2Gi
-            cpu: "1"
+            cpu: "2"
         imagePullPolicy: Always
         ports:
         - containerPort: 9300
@@ -451,7 +449,7 @@ spec:
       - ReadWriteOnce
       resources:
         requests:
-          storage: 100Gi
+          storage: 300Gi
 ---
 apiVersion: v1
 kind: Secret

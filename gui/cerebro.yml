@@ -1,0 +1,48 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cerebro
+  namespace: logging
+  labels:
+    app: cerebro
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cerebro
+  template:
+    metadata:
+      labels:
+        app: cerebro
+    spec:
+      containers:
+      - name: cerebro
+        image: lmenezes/cerebro
+        env:
+        - name: CEREBRO_PORT
+          value: 9000
+        ports:
+        - containerPort: 9000
+          name: http
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: cerebro
+  namespace: logging
+  labels:
+    app: cerebro
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Cluster
+  loadBalancerSourceRanges:
+    - 15.0.0.0/9
+    - 192.56.0.0/16
+    - 76.126.85.105/32
+  selector:
+    app: cerebro
+  ports:
+  - name: http
+    port: 9000
+    targetPort: 9000

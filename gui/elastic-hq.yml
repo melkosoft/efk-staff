@@ -1,0 +1,50 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elastic-hq
+  namespace: logging
+  labels:
+    app: elastic-hq
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: elastic-hq
+  template:
+    metadata:
+      labels:
+        app: elastic-hq
+    spec:
+      containers:
+      - name: elastic-hq
+        image: elastichq/elasticsearch-hq:v3.5.6
+        env:
+        - name: HQ_DEFAULT_URL
+          value: https://elasticsearch:9200
+        - name: HQ_DEBUG
+          value: "False"
+        ports:
+        - containerPort: 5000
+          name: http
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: elastic-hq
+  namespace: logging
+  labels:
+    app: elastic-hq
+spec:
+  type: LoadBalancer
+  externalTrafficPolicy: Cluster
+  loadBalancerSourceRanges:
+    - 15.0.0.0/9
+    - 192.56.0.0/16
+    - 76.126.85.105/32
+  selector:
+    app: elastic-hq
+  ports:
+  - name: http
+    port: 5000
+    targetPort: 5000
